@@ -167,8 +167,8 @@ $handlers = $pdo->query("
       </select>
       <p class="mt-1 text-xs text-slate-500">Selected handlers can add, edit, and unlist projects in this subject.</p>
     </div>
-    <div class="md:col-span-2 flex justify-end gap-3">
-      <a href="dashboard.php?page=folders" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</a>
+    <div class="flex flex-col-reverse gap-3 md:col-span-2 sm:flex-row sm:justify-end">
+      <a href="dashboard.php?page=folders" class="rounded-lg border border-slate-200 px-4 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</a>
       <button type="submit" class="rounded-lg bg-cta px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">Create Subject</button>
     </div>
   </form>

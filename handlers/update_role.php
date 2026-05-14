@@ -1,4 +1,5 @@
 <?php
+define("NUCLEUS_SKIP_DIRECT_ACCESS_REDIRECT", true);
 require_once __DIR__ . "/../includes/core.php";
 require_once __DIR__ . "/../includes/Security.php";
 

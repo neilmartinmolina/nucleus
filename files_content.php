@@ -5,6 +5,10 @@ ensureDriveStorageSchema($pdo);
 
 $role = $_SESSION["role"] ?? (new RoleManager($pdo))->getUserRole($_SESSION["userId"] ?? null);
 $userId = (int) ($_SESSION["userId"] ?? 0);
+if (!in_array($role, ["admin", "handler"], true)) {
+    echo "<div class=\"rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700\">Drive Storage is restricted to administrators and handlers.</div>";
+    return;
+}
 $folderId = isset($_GET["folder_id"]) && is_numeric($_GET["folder_id"]) ? (int) $_GET["folder_id"] : null;
 $search = trim((string) ($_GET["search"] ?? ""));
 $currentFolder = getCurrentFolder($folderId);
@@ -115,12 +119,12 @@ function driveItemIcon(array $item): string
                                         <?php else: ?>
                                             <a href="handlers/files/download.php?id=<?php echo (int) $item["item_id"]; ?>" class="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100">Download</a>
                                         <?php endif; ?>
-                                        <form method="POST" action="handlers/files/rename.php" class="flex gap-1">
+                                        <form method="POST" action="handlers/files/rename.php" class="flex flex-wrap gap-1">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION["csrf_token"]); ?>">
                                             <input type="hidden" name="type" value="<?php echo htmlspecialchars($item["item_type"]); ?>">
                                             <input type="hidden" name="id" value="<?php echo (int) $item["item_id"]; ?>">
                                             <input type="hidden" name="folder_id" value="<?php echo htmlspecialchars((string) $folderId); ?>">
-                                            <input name="name" value="<?php echo htmlspecialchars($item["name"]); ?>" class="w-32 rounded-lg border border-slate-200 px-2 py-1 text-xs">
+                                            <input name="name" value="<?php echo htmlspecialchars($item["name"]); ?>" class="w-32 max-w-full rounded-lg border border-slate-200 px-2 py-1 text-xs">
                                             <button class="rounded-lg bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">Rename</button>
                                         </form>
                                         <form method="POST" action="handlers/files/delete.php" class="inline">

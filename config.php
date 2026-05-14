@@ -67,10 +67,16 @@ defined("DB_PASS") || define("DB_PASS", DB_PASSWORD);
 defined("STORAGE_DEFAULT_DRIVER") || define("STORAGE_DEFAULT_DRIVER", $nucleusConfig["files"]["driver"]);
 defined("STORAGE_LOCAL_ROOT") || define("STORAGE_LOCAL_ROOT", $nucleusConfig["files"]["local_root"]);
 defined("RESOURCE_MAX_FILE_SIZE") || define("RESOURCE_MAX_FILE_SIZE", (int) $nucleusConfig["files"]["upload_max_bytes"]);
-defined("RESOURCE_PROJECT_QUOTA_BYTES") || define("RESOURCE_PROJECT_QUOTA_BYTES", (int) $nucleusConfig["files"]["admin_quota_bytes"]);
 defined("UPLOAD_MAX_BYTES") || define("UPLOAD_MAX_BYTES", (int) $nucleusConfig["files"]["upload_max_bytes"]);
-defined("ADMIN_QUOTA_BYTES") || define("ADMIN_QUOTA_BYTES", (int) $nucleusConfig["files"]["admin_quota_bytes"]);
-defined("HANDLER_QUOTA_BYTES") || define("HANDLER_QUOTA_BYTES", (int) $nucleusConfig["files"]["handler_quota_bytes"]);
+$adminQuota = (int) $nucleusConfig["files"]["admin_quota_bytes"];
+$handlerQuota = (int) $nucleusConfig["files"]["handler_quota_bytes"];
+if (strtolower($nucleusConfig["files"]["driver"]) === "local") {
+    $adminQuota = (int) floor($adminQuota / 2);
+    $handlerQuota = (int) floor($handlerQuota / 2);
+}
+defined("RESOURCE_PROJECT_QUOTA_BYTES") || define("RESOURCE_PROJECT_QUOTA_BYTES", $adminQuota);
+defined("ADMIN_QUOTA_BYTES") || define("ADMIN_QUOTA_BYTES", $adminQuota);
+defined("HANDLER_QUOTA_BYTES") || define("HANDLER_QUOTA_BYTES", $handlerQuota);
 defined("FTP_STORAGE_HOST") || define("FTP_STORAGE_HOST", $nucleusConfig["ftp"]["host"]);
 defined("FTP_STORAGE_PORT") || define("FTP_STORAGE_PORT", (int) $nucleusConfig["ftp"]["port"]);
 defined("FTP_STORAGE_USERNAME") || define("FTP_STORAGE_USERNAME", $nucleusConfig["ftp"]["username"]);

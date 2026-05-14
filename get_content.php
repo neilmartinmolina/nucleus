@@ -31,6 +31,31 @@ if ($featureKey && !isFeatureEnabled($featureKey) && !shouldBypassMaintenance())
     exit;
 }
 
+$roleManager = new RoleManager($pdo);
+$currentRole = $roleManager->getUserRole($_SESSION["userId"] ?? null) ?: "visitor";
+$adminOnlyTabs = ["settings", "create-user", "manage-user", "usermanagement"];
+$handlerOrAdminTabs = ["files", "alerts"];
+if (in_array($tab, $adminOnlyTabs, true) && !isAdminLike()) {
+    http_response_code(403);
+    echo "<div class=\"rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700\">This area is restricted to administrators.</div>";
+    exit;
+}
+if (in_array($tab, $handlerOrAdminTabs, true) && !in_array($currentRole, ["admin", "handler"], true)) {
+    http_response_code(403);
+    echo "<div class=\"rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700\">This area is restricted to administrators and handlers.</div>";
+    exit;
+}
+if (in_array($tab, ["create-project", "project-form"], true) && !hasPermission("create_project")) {
+    http_response_code(403);
+    echo "<div class=\"rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700\">You do not have permission to create projects.</div>";
+    exit;
+}
+if ($tab === "logs" && !hasPermission("view_activity_logs")) {
+    http_response_code(403);
+    echo "<div class=\"rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700\">You do not have permission to view activity logs.</div>";
+    exit;
+}
+
 switch ($tab) {
     case "dashboard":
         require_once __DIR__ . "/dashboard_content.php";

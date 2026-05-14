@@ -81,8 +81,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["csrf_token"])) {
         <option value="admin">Admin</option>
       </select>
     </div>
-    <div class="flex justify-end gap-3">
-      <a href="dashboard.php?page=usermanagement" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</a>
+    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <a href="dashboard.php?page=usermanagement" class="rounded-lg border border-slate-200 px-4 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</a>
       <button type="submit" class="rounded-lg bg-cta px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">Create User</button>
     </div>
   </form>

@@ -1,36 +1,71 @@
 # Nucleus
-Centralized Updator for Systems and Projects 
+
+Nucleus is a centralized academic project tracker with role-based access, project status monitoring, alerts, feature flags, and file/resource storage.
+
+## Current Scope
+
+Nucleus is in stabilization mode. New modules should not be added until the existing install, monitoring, permissions, storage, and demo flows are reliable.
+
+## Requirements
+
+- PHP 8.x
+- MySQL or MariaDB
+- Composer
+- PHP extensions: PDO MySQL, curl, fileinfo, JSON, OpenSSL
+- PHP FTP extension when FTP-backed storage or Drive Storage is used
+
+## Quick Start
+
+```text
+composer install
+copy .env.example .env
+php init_db.php
+```
+
+Then open the app in your browser and log in with:
+
+```text
+admin / admin123
+```
+
+Change seeded credentials before real use.
+
+## Configuration
+
+Use `.env.example` as the source of truth for required environment values. Keep real `.env` files out of git.
+
+Important settings:
+
+- `APP_ENV`, `APP_DEBUG`, `APP_URL`
+- `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
+- `FILE_STORAGE_DRIVER`, `STORAGE_LOCAL_ROOT`
+- `FTP_HOST`, `FTP_USERNAME`, `FTP_PASSWORD`, `FTP_ROOT`
+- `MONITORING_QUEUE_TOKEN`
 
 ## Database
 
-Nucleus now targets the `nucleus` database by default. The normalized 3NF schema is in `migrations/nucleus_3nf_schema.sql`.
+The normalized schema is in `migrations/nucleus_3nf_schema.sql`. `php init_db.php` creates the configured database, applies the main schema, and applies file storage migrations from `database/migrations`.
 
-The redesign replaces the old `folders`, `websites`, and `user_permissions` model with `subjects`, `projects`, `project_status`, `roles`, `project_members`, `activity_logs`, `files`, `comments`, and `notifications`.
+The schema includes users, roles, subjects, projects, project status, deployment checks, monitoring alerts, monitoring runs/settings, feature flags, project members, activity logs, comments, notifications, resource files, and Drive Storage metadata.
 
-Run `php init_db.php` for a clean install. If a different `nucleus` schema already exists, the initializer stops instead of rewriting data.
+## Monitoring
 
-## Deployment monitoring
+Nucleus monitoring is read-only. It checks public project URLs and optional metadata endpoints, stores history in `deployment_checks`, updates `project_status`, and raises `monitoring_alerts`.
 
-1. Create or edit a project from the Projects page. The project setup page stores:
-   - `github_repo_url`: GitHub clone URL ending in `.git`.
-   - `github_repo_name`: derived from the clone URL.
-   - `deployment_mode`: `hostinger_git` by default, or `custom_webhook`.
-   - `webhook_secret`: generated per project and copied into GitHub.
-   - Status phases: `initializing`, `building`, `deployed`, or `error`.
-2. For `hostinger_git`, let Hostinger own deployment. Nucleus monitors the public URL, `status.json` if present, `/api/status` if present, optional `version.json`, and HTTP reachability.
-3. For `custom_webhook`, put a deploy script in the deployed project, such as `deploy.example.php` adapted as `deploy.php`.
-4. In GitHub, use one webhook only. In `hostinger_git` mode, point it at Hostinger's Git deployment flow. In `custom_webhook` mode, point it at the deployed project's `deploy.php`.
+Manual monitoring remains available to administrators in every scheduler mode.
 
-Nucleus never deploys from a webhook and must not be configured as a second GitHub webhook. It polls each project's status endpoints, saves every result to `deployment_checks`, and mirrors the current read-only status into the dashboard. If a Hostinger Git project has no remote status file but the homepage is reachable, Nucleus marks it online/deployed with the note `Hostinger Git mode: no remote status file found.`
+See `MONITORING_SETUP.md`.
 
-Optional `version.json` format for any project:
+## Storage
 
-```json
-{
-  "project": "ProjectName",
-  "version": "1.0.0",
-  "commit": "manual-or-github-hash",
-  "branch": "main",
-  "updated_at": "2026-05-02 17:00:00"
-}
-```
+Project resources are served only through authenticated handlers. Direct access to `storage` is denied by `storage/.htaccess`.
+
+See `STORAGE_SETUP.md`.
+
+## Documentation
+
+- `INSTALL_LOCAL.md`
+- `HOSTINGER_DEPLOYMENT.md`
+- `MONITORING_SETUP.md`
+- `STORAGE_SETUP.md`
+- `DEMO_SCRIPT.md`

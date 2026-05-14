@@ -65,8 +65,8 @@ generateCSRFToken();
     <title>Complete Password Reset</title>
 </head>
 <body>
-    <div class="container d-flex justify-content-center align-items-center vh-100">
-        <div class="card p-4" style="width:400px;">
+    <div class="container d-flex justify-content-center align-items-center min-vh-100 px-3 py-4">
+        <div class="card p-4 w-100" style="max-width:400px;">
             <h4 class="text-center mb-3">Complete Password Reset</h4>
             
             <form method="POST">

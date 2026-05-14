@@ -15,6 +15,18 @@ function queueResponse(int $statusCode, array $payload): void
     exit;
 }
 
+function queueSafeErrorMessage(string $message): string
+{
+    if (php_sapi_name() === "cli") {
+        return $message;
+    }
+
+    $looksLikePath = preg_match('/[A-Za-z]:[\\\\\/]|\/(?:var|home|usr|opt|xampp|tmp)\//', $message) === 1;
+    return $looksLikePath || $message === ""
+        ? "Monitoring queue failed. Check storage/logs/monitoring.log for details."
+        : $message;
+}
+
 function queueAuthorized(): bool
 {
     if (php_sapi_name() === "cli" || isLocal()) {
@@ -260,7 +272,7 @@ try {
         "success" => false,
         "status" => "failed",
         "runId" => $runId,
-        "message" => $e->getMessage(),
+        "message" => queueSafeErrorMessage($e->getMessage()),
         "checked" => $checked,
         "errors" => $errors + 1,
         "durationMs" => $durationMs,

@@ -1,4 +1,5 @@
 <?php
+define("NUCLEUS_SKIP_DIRECT_ACCESS_REDIRECT", true);
 require_once __DIR__ . "/../../includes/core.php";
 
 header("Content-Type: application/json");
@@ -104,6 +105,7 @@ $dataStmt->execute($filteredParams);
 
 $canUpdate = hasPermission("update_project");
 $canDelete = hasPermission("delete_project");
+$csrfToken = htmlspecialchars($_SESSION["csrf_token"] ?? "");
 $rows = [];
 
 foreach ($dataStmt->fetchAll() as $project) {
@@ -127,11 +129,11 @@ foreach ($dataStmt->fetchAll() as $project) {
         $actions[] = "<a href=\"dashboard.php?page=create-project&websiteId={$projectId}\" class=\"px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm transition-colors\">Edit</a>";
         $actions[] = "<a href=\"dashboard.php?page=project-details&projectId={$projectId}\" class=\"px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm transition-colors\">Details</a>";
         if (!empty($project["subject_id"])) {
-            $actions[] = "<a href=\"get_content.php?tab=websites&unlist={$projectId}\" data-confirm=\"This removes the project from its subject without deleting it.\" data-confirm-title=\"Unlist this project?\" data-confirm-button=\"Unlist\" data-return-page=\"websites\" class=\"px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm transition-colors\">Unlist</a>";
+            $actions[] = "<form method=\"POST\" action=\"get_content.php?tab=websites\" data-confirm=\"This removes the project from its subject without deleting it.\" data-confirm-title=\"Unlist this project?\" data-confirm-button=\"Unlist\" data-return-page=\"websites\" class=\"inline\"><input type=\"hidden\" name=\"csrf_token\" value=\"{$csrfToken}\"><input type=\"hidden\" name=\"project_action\" value=\"unlist\"><input type=\"hidden\" name=\"project_id\" value=\"{$projectId}\"><button type=\"submit\" class=\"px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm transition-colors\">Unlist</button></form>";
         }
     }
     if ($canDelete) {
-        $actions[] = "<a href=\"get_content.php?tab=websites&delete={$projectId}\" data-confirm=\"This permanently deletes the project record.\" data-confirm-title=\"Delete this project?\" data-confirm-button=\"Delete\" data-return-page=\"websites\" class=\"px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-sm transition-colors\">Delete</a>";
+        $actions[] = "<form method=\"POST\" action=\"get_content.php?tab=websites\" data-confirm=\"This permanently deletes the project record.\" data-confirm-title=\"Delete this project?\" data-confirm-button=\"Delete\" data-return-page=\"websites\" class=\"inline\"><input type=\"hidden\" name=\"csrf_token\" value=\"{$csrfToken}\"><input type=\"hidden\" name=\"project_action\" value=\"delete\"><input type=\"hidden\" name=\"project_id\" value=\"{$projectId}\"><button type=\"submit\" class=\"px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-sm transition-colors\">Delete</button></form>";
     }
 
     $rows[] = [

@@ -44,7 +44,18 @@ try {
     }
 
     $migration = file_get_contents($migrationFile);
+    $migration = preg_replace('/CREATE DATABASE IF NOT EXISTS\s+`?nucleus`?\s+CHARACTER SET utf8mb4\s+COLLATE utf8mb4_unicode_ci;/i', "", $migration);
+    $migration = preg_replace('/USE\s+`?nucleus`?\s*;/i', "", $migration);
     $pdo->exec($migration);
+
+    $extraMigrationDir = __DIR__ . "/database/migrations";
+    foreach (glob($extraMigrationDir . "/*.sql") ?: [] as $extraMigrationFile) {
+        $extraMigration = file_get_contents($extraMigrationFile);
+        if ($extraMigration !== false && trim($extraMigration) !== "") {
+            $pdo->exec($extraMigration);
+        }
+    }
+
     echo "Nucleus database schema initialized successfully!\n";
 } catch (Exception $e) {
     echo "Schema initialization failed: " . $e->getMessage() . "\n";

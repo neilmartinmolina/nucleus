@@ -17,6 +17,7 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$userId]);
 $currentUser = $stmt->fetch();
+$currentRole = $currentUser["role"] ?? "visitor";
 generateCSRFToken();
 
 $navFeatures = [
@@ -224,21 +225,112 @@ $dashboardPayload = [
             padding-left: 0.5rem;
             padding-right: 0.5rem;
         }
+        .dashboard-sidebar {
+            transition: transform 180ms ease;
+        }
+        .mobile-nav-backdrop {
+            display: none;
+        }
+        @media (max-width: 767px) {
+            .dashboard-shell {
+                min-width: 0;
+            }
+            .dashboard-sidebar {
+                position: fixed;
+                inset: 0 auto 0 0;
+                z-index: 50;
+                width: min(18rem, 86vw);
+                transform: translateX(-100%);
+                box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+            }
+            body.sidebar-open .dashboard-sidebar {
+                transform: translateX(0);
+            }
+            body.sidebar-open .mobile-nav-backdrop {
+                display: block;
+                position: fixed;
+                inset: 0;
+                z-index: 40;
+                background: rgba(15, 23, 42, 0.42);
+            }
+            .dt-container .dt-layout-row {
+                align-items: stretch;
+                flex-direction: column;
+                padding: 0.875rem;
+            }
+            .dt-container .dt-layout-row:first-child,
+            .dt-container .dt-layout-row:last-child {
+                gap: 0.75rem;
+            }
+            .dt-container .dt-search label,
+            .dt-container .dt-length label {
+                align-items: stretch;
+                flex-direction: column;
+                gap: 0.375rem;
+                width: 100%;
+            }
+            .dt-container .dt-search input,
+            .dt-container .dt-length select {
+                min-width: 0;
+                width: 100%;
+            }
+            .dt-container .dt-paging {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+            .dt-container table.dataTable {
+                min-width: 48rem;
+            }
+            .dt-scroll-body {
+                overflow-x: auto !important;
+            }
+            .nucleus-table-inner .dt-layout-row {
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+            .nucleus-table-inner .dt-layout-table {
+                overflow-x: auto;
+                padding-left: 0;
+                padding-right: 0;
+            }
+            #pageContent section,
+            #pageContent form,
+            #pageContent aside,
+            #pageContent .rounded-xl {
+                max-width: 100%;
+            }
+            #pageContent input,
+            #pageContent select,
+            #pageContent textarea,
+            #pageContent button,
+            #pageContent a {
+                max-width: 100%;
+            }
+            #pageContent code {
+                white-space: pre-wrap;
+                word-break: break-word;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans">
 
-    <div class="flex h-screen overflow-hidden">
+    <div class="mobile-nav-backdrop" data-mobile-nav-close></div>
+
+    <div class="dashboard-shell flex h-screen overflow-hidden">
 
         <!-- Sidebar -->
-        <aside class="w-64 bg-white border-r border-slate-200 flex flex-col">
+        <aside id="dashboardSidebar" class="dashboard-sidebar w-64 bg-white border-r border-slate-200 flex flex-col">
             <!-- Logo -->
-            <div class="h-16 flex items-center px-6 border-b border-slate-200">
+            <div class="h-16 flex items-center justify-between px-6 border-b border-slate-200">
                 <div class="text-xl font-bold tracking-tight text-navy">NUCLEUS</div>
+                <button type="button" data-mobile-nav-close class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 md:hidden" aria-label="Close navigation">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
             </div>
 
             <!-- Nav Links -->
-            <nav class="flex-1 py-6 px-3 space-y-1">
+            <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
                 <?php if ($navFeatures["dashboard"] || isAdminLike()): ?>
                 <a href="?page=dashboard" class="nav-item active block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["dashboard"] ? "" : "opacity-60"; ?>" data-page="dashboard">
                     <svg class="w-5 h-5 inline-block mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
@@ -257,7 +349,7 @@ $dashboardPayload = [
                     Projects
                 </a>
                 <?php endif; ?>
-                <?php if ($navFeatures["files"] || isAdminLike()): ?>
+                <?php if (($navFeatures["files"] && in_array($currentRole, ["admin", "handler"], true)) || isAdminLike()): ?>
                 <a href="?page=files" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["files"] ? "" : "opacity-60"; ?>" data-page="files">
                     <svg class="w-5 h-5 inline-block mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"></path></svg>
                     Files
@@ -275,13 +367,13 @@ $dashboardPayload = [
                     Requests
                 </a>
                 <?php endif; ?>
-                <?php if ($navFeatures["settings"] || isAdminLike()): ?>
+                <?php if (isAdminLike() && ($navFeatures["settings"] || isAdminLike())): ?>
                 <a href="?page=settings" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["settings"] ? "" : "opacity-60"; ?>" data-page="settings">
                     <svg class="w-5 h-5 inline-block mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.607 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                     Settings
                 </a>
                 <?php endif; ?>
-                <?php if ($navFeatures["alerts"] || isAdminLike()): ?>
+                <?php if (($navFeatures["alerts"] && in_array($currentRole, ["admin", "handler"], true)) || isAdminLike()): ?>
                 <a href="?page=alerts" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["alerts"] ? "" : "opacity-60"; ?>" data-page="alerts">
                     <svg class="w-5 h-5 inline-block mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>
                     Alerts
@@ -313,18 +405,23 @@ $dashboardPayload = [
         </aside>
 
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="min-w-0 flex-1 flex flex-col overflow-hidden">
 
             <!-- Top Navbar -->
-            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
-                <h1 class="text-xl font-bold text-navy" id="pageTitle">Dashboard</h1>
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between gap-3 px-4 sm:px-6">
+                <div class="flex min-w-0 items-center gap-3">
+                    <button type="button" data-mobile-nav-open class="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 md:hidden" aria-label="Open navigation" aria-controls="dashboardSidebar">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"></path></svg>
+                    </button>
+                    <h1 class="truncate text-lg font-bold text-navy sm:text-xl" id="pageTitle">Dashboard</h1>
+                </div>
                 <div class="flex items-center gap-4">
                     <a href="logout.php" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-navy transition">Logout</a>
                 </div>
             </header>
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-auto p-8" id="pageContent">
+            <main class="flex-1 overflow-auto p-4 sm:p-6 lg:p-8" id="pageContent">
                 <!-- Content loaded via AJAX -->
             </main>
 
@@ -345,6 +442,24 @@ $dashboardPayload = [
         const contentEl = document.getElementById('pageContent');
         const titleEl = document.getElementById('pageTitle');
         const navLinks = document.querySelectorAll('.nav-item');
+        const openNavButton = document.querySelector('[data-mobile-nav-open]');
+        const closeNavTriggers = document.querySelectorAll('[data-mobile-nav-close]');
+
+        function closeMobileNav() {
+            document.body.classList.remove('sidebar-open');
+        }
+
+        function openMobileNav() {
+            document.body.classList.add('sidebar-open');
+        }
+
+        if (openNavButton) {
+            openNavButton.addEventListener('click', openMobileNav);
+        }
+        closeNavTriggers.forEach(trigger => trigger.addEventListener('click', closeMobileNav));
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeMobileNav();
+        });
 
         function initNucleusDataTables(scope = document) {
             if (!window.DataTable) return;
@@ -906,6 +1021,7 @@ $dashboardPayload = [
                 link.classList.remove('active');
                 if (link.dataset.page === navPage) link.classList.add('active');
             });
+            closeMobileNav();
         }
 
         // Initial load
@@ -917,6 +1033,7 @@ $dashboardPayload = [
         navLinks.forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
+                closeMobileNav();
                 loadPage(this.dataset.page);
             });
         });

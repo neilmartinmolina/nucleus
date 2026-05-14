@@ -15,6 +15,18 @@ function cleanupResponse(int $statusCode, array $payload): void
     exit;
 }
 
+function cleanupSafeErrorMessage(string $message): string
+{
+    if (php_sapi_name() === "cli") {
+        return $message;
+    }
+
+    $looksLikePath = preg_match('/[A-Za-z]:[\\\\\/]|\/(?:var|home|usr|opt|xampp|tmp)\//', $message) === 1;
+    return $looksLikePath || $message === ""
+        ? "Monitoring cleanup failed. Check storage/logs/monitoring.log for details."
+        : "Monitoring cleanup failed.";
+}
+
 function cleanupAuthorized(): bool
 {
     if (php_sapi_name() === "cli" || isLocal()) {
@@ -79,5 +91,5 @@ try {
     ]);
 } catch (Throwable $e) {
     monitoringLog("Monitoring cleanup failed.", ["error" => $e->getMessage()]);
-    cleanupResponse(500, ["success" => false, "message" => $e->getMessage()]);
+    cleanupResponse(500, ["success" => false, "message" => cleanupSafeErrorMessage($e->getMessage())]);
 }

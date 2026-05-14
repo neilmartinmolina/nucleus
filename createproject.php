@@ -272,14 +272,14 @@ if ($websiteId) {
       </div>
       <div>
         <label class="mb-1 block text-sm font-medium text-slate-700">Webhook Secret *</label>
-        <div class="flex gap-2">
+        <div class="flex flex-col gap-2 sm:flex-row">
           <input type="text" name="webhook_secret" id="webhookSecret" required value="<?php echo htmlspecialchars($website["webhook_secret"]); ?>" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20">
-          <button type="button" id="generateSecret" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Generate</button>
+          <button type="button" id="generateSecret" class="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto">Generate</button>
         </div>
       </div>
     </div>
-    <div class="mt-6 flex justify-end gap-3">
-      <a href="dashboard.php?page=websites" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Cancel</a>
+    <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <a href="dashboard.php?page=websites" class="rounded-lg border border-slate-200 px-4 py-2 text-center text-sm font-medium text-slate-700 transition hover:bg-slate-50">Cancel</a>
       <button type="submit" class="rounded-lg bg-cta px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500">Save Project</button>
     </div>
   </form>
@@ -289,9 +289,9 @@ if ($websiteId) {
     <div class="mt-5 space-y-5">
       <div>
         <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Deploy Webhook URL</label>
-        <div class="flex gap-2">
+        <div class="flex flex-col gap-2 sm:flex-row">
           <input id="deployWebhookUrl" readonly value="<?php echo htmlspecialchars($deployWebhookUrl); ?>" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-          <button type="button" class="copy-btn rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50" data-copy-target="deployWebhookUrl">Copy</button>
+          <button type="button" class="copy-btn rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto" data-copy-target="deployWebhookUrl">Copy</button>
         </div>
         <p class="mt-1 text-xs text-slate-500"><?php echo $isCustomWebhook ? "Use this as the single GitHub webhook target when deploy.php exists in the deployed project." : "Not required for Hostinger Git mode. Hostinger owns deployment; Nucleus only monitors."; ?></p>
       </div>
@@ -301,9 +301,9 @@ if ($websiteId) {
       </div>
       <div>
         <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Status Endpoint</label>
-        <div class="flex gap-2">
+        <div class="flex flex-col gap-2 sm:flex-row">
           <input id="statusEndpointUrl" readonly value="<?php echo htmlspecialchars($statusEndpointUrl); ?>" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-          <button type="button" class="copy-btn rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50" data-copy-target="statusEndpointUrl">Copy</button>
+          <button type="button" class="copy-btn rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto" data-copy-target="statusEndpointUrl">Copy</button>
         </div>
       </div>
       <div>

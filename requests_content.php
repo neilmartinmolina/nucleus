@@ -472,7 +472,7 @@ $subjects = $pdo->query("SELECT subject_id, subject_code, subject_name FROM subj
           <?php if ($canReviewProjectRequests): ?>
           <td class="py-4 pr-6">
             <?php if ($request["status"] === "pending" && canReviewProjectRequest($roleManager, (int) $request["subject_id"])): ?>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
               <form method="POST" action="get_content.php?tab=requests">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION["csrf_token"]; ?>">
                 <input type="hidden" name="request_action" value="approve_project_request">
@@ -535,7 +535,7 @@ $subjects = $pdo->query("SELECT subject_id, subject_code, subject_name FROM subj
           <?php if (hasPermission("manage_requests")): ?>
           <td class="py-4 pr-6">
             <?php if ($request["status"] === "pending"): ?>
-            <div class="flex gap-2">
+            <div class="flex flex-wrap gap-2">
               <form method="POST" action="get_content.php?tab=requests">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION["csrf_token"]; ?>">
                 <input type="hidden" name="request_action" value="approve_request">

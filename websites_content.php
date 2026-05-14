@@ -9,8 +9,9 @@ if (!isAuthenticated()) {
 $roleManager = new RoleManager($pdo);
 $isAjaxRequest = ($_SERVER["HTTP_X_REQUESTED_WITH"] ?? "") === "XMLHttpRequest";
 $success = null;
+$error = null;
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["csrf_token"])) {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["csrf_token"]) && empty($_POST["project_action"])) {
     validateCSRF($_POST["csrf_token"]);
     
     $websiteName = trim($_POST["websiteName"] ?? "");
@@ -61,19 +62,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["csrf_token"])) {
     }
 }
 
-if (isset($_GET["delete"]) && hasPermission("delete_project")) {
-    $id = $_GET["delete"];
-    $pdo->prepare("DELETE FROM projects WHERE project_id = ?")->execute([$id]);
-    $success = "Project deleted successfully.";
+if ($_SERVER["REQUEST_METHOD"] === "POST" && ($_POST["project_action"] ?? "") === "delete") {
+    validateCSRF($_POST["csrf_token"] ?? "");
+    if (!hasPermission("delete_project")) {
+        $error = "You do not have permission to delete projects.";
+    } else {
+        $id = isset($_POST["project_id"]) && is_numeric($_POST["project_id"]) ? (int) $_POST["project_id"] : 0;
+        $pdo->prepare("DELETE FROM projects WHERE project_id = ?")->execute([$id]);
+        $success = "Project deleted successfully.";
+    }
     if (!$isAjaxRequest) {
         header("Location: dashboard.php?page=websites");
         exit;
     }
 }
 
-if (isset($_GET["unlist"]) && hasPermission("update_project")) {
-    $id = $_GET["unlist"];
-    if (is_numeric($id) && $roleManager->canAccessProject($_SESSION["userId"], (int) $id)) {
+if ($_SERVER["REQUEST_METHOD"] === "POST" && ($_POST["project_action"] ?? "") === "unlist") {
+    validateCSRF($_POST["csrf_token"] ?? "");
+    if (!hasPermission("update_project")) {
+        $error = "You do not have permission to update projects.";
+    } else {
+        $id = isset($_POST["project_id"]) && is_numeric($_POST["project_id"]) ? (int) $_POST["project_id"] : 0;
+        if ($id > 0 && $roleManager->canAccessProject($_SESSION["userId"], $id)) {
         $stmt = $pdo->prepare("
             SELECT p.project_name, s.subject_code
             FROM projects p
@@ -86,8 +96,13 @@ if (isset($_GET["unlist"]) && hasPermission("update_project")) {
         $stmt = $pdo->prepare("UPDATE projects SET subject_id = NULL, saved_at = NOW(), updated_at = NOW() WHERE project_id = ?");
         $stmt->execute([$id]);
         logActivity("project_unlisted", "Unlisted " . ($project["project_name"] ?? "project") . " from " . ($project["subject_code"] ?? "its subject"), (int) $id);
+        } else {
+            $error = "You do not have access to that project.";
+        }
     }
-    $success = "Project unlisted successfully.";
+    if (!$error) {
+        $success = "Project unlisted successfully.";
+    }
     if (!$isAjaxRequest) {
         header("Location: dashboard.php?page=websites");
         exit;
@@ -113,6 +128,9 @@ if (isset($_GET["unlist"]) && hasPermission("update_project")) {
 
 <?php if ($success): ?>
 <div data-feedback="success" data-feedback-title="Projects updated" data-feedback-message="<?php echo htmlspecialchars($success); ?>" class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700"><?php echo htmlspecialchars($success); ?></div>
+<?php endif; ?>
+<?php if ($error): ?>
+<div data-feedback="error" data-feedback-title="Project action failed" data-feedback-message="<?php echo htmlspecialchars($error); ?>" class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"><?php echo htmlspecialchars($error); ?></div>
 <?php endif; ?>
 
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
