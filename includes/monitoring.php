@@ -4,7 +4,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 
 const NUCLEUS_MONITORING_DEFAULT_STALE_MINUTES = 10;
-const NUCLEUS_MONITORING_DEFAULT_BATCH_SIZE = 10;
+const NUCLEUS_MONITORING_DEFAULT_BATCH_SIZE = 3;
 const NUCLEUS_MONITORING_DEFAULT_SCHEDULER_MODE = "manual";
 
 function monitoringStaleMinutes(): int
@@ -47,23 +47,36 @@ function monitoringSettings(PDO $pdo): array
 
     $defaults = [
         "scheduler_mode" => NUCLEUS_MONITORING_DEFAULT_SCHEDULER_MODE,
-        "check_interval_minutes" => 5,
+        "scheduler_enabled" => 0,
+        "scheduler_interval_minutes" => 2,
+        "scheduler_batch_size" => NUCLEUS_MONITORING_DEFAULT_BATCH_SIZE,
+        "scheduler_force" => 0,
+        "lock_timeout_seconds" => 300,
+        "check_interval_minutes" => 2,
         "stale_after_minutes" => 10,
         "failure_threshold" => 3,
-        "batch_size" => 10,
+        "batch_size" => NUCLEUS_MONITORING_DEFAULT_BATCH_SIZE,
         "response_slow_ms" => 3000,
         "retention_days" => 30,
     ];
 
     try {
         $rows = $pdo->query("SELECT setting_key, setting_value FROM monitoring_settings")->fetchAll();
+        $stored = [];
         foreach ($rows as $row) {
-            if ($row["setting_key"] === "scheduler_mode") {
-                $defaults["scheduler_mode"] = monitoringNormalizeSchedulerMode((string) $row["setting_value"]);
-            } elseif (array_key_exists($row["setting_key"], $defaults)) {
-                $defaults[$row["setting_key"]] = (int) $row["setting_value"];
+            $stored[(string) $row["setting_key"]] = (string) $row["setting_value"];
+        }
+        foreach ($stored as $key => $value) {
+            if ($key === "scheduler_mode") {
+                $defaults["scheduler_mode"] = monitoringNormalizeSchedulerMode($value);
+            } elseif (array_key_exists($key, $defaults)) {
+                $defaults[$key] = (int) $value;
             }
         }
+        $defaults["check_interval_minutes"] = max(1, (int) $defaults["scheduler_interval_minutes"]);
+        $defaults["batch_size"] = max(1, (int) $defaults["scheduler_batch_size"]);
+        $defaults["scheduler_enabled"] = !empty($defaults["scheduler_enabled"]) ? 1 : 0;
+        $defaults["scheduler_force"] = !empty($defaults["scheduler_force"]) ? 1 : 0;
     } catch (Throwable $e) {
         error_log("Monitoring settings unavailable: " . $e->getMessage());
     }
@@ -98,8 +111,92 @@ function monitoringNormalizeSchedulerMode(string $mode): string
 
 function monitoringCronCommand(array $settings = []): string
 {
-    $batchSize = max(1, min((int) ($settings["batch_size"] ?? NUCLEUS_MONITORING_DEFAULT_BATCH_SIZE), 100));
+    $batchSize = max(1, min((int) ($settings["scheduler_batch_size"] ?? ($settings["batch_size"] ?? NUCLEUS_MONITORING_DEFAULT_BATCH_SIZE)), 100));
     return "php handlers/run_monitoring_queue.php batch=" . $batchSize;
+}
+
+function monitoringSchedulerStatus(PDO $pdo, bool $canAutoRunRole = false): array
+{
+    $settings = monitoringSettings($pdo);
+    $mode = monitoringNormalizeSchedulerMode((string) ($settings["scheduler_mode"] ?? ""));
+    $enabled = !empty($settings["scheduler_enabled"]);
+    $intervalMinutes = max(1, (int) ($settings["scheduler_interval_minutes"] ?? ($settings["check_interval_minutes"] ?? 2)));
+    $lastRun = monitoringLastRun($pdo);
+    $lastRunAt = $lastRun["started_at"] ?? null;
+    $lastRunAgeMinutes = null;
+    $lastRunAgeSeconds = null;
+    if ($lastRunAt && strtotime((string) $lastRunAt) !== false) {
+        $lastRunAgeSeconds = max(0, time() - strtotime((string) $lastRunAt));
+        $lastRunAgeMinutes = max(0, (int) floor($lastRunAgeSeconds / 60));
+    }
+
+    $lockState = monitoringLockState($pdo);
+    $cleanup = ["success" => false, "cleared" => false, "message" => ""];
+    if ($canAutoRunRole && !empty($lockState["stale"]) && empty($lockState["active"])) {
+        $cleanup = clearStaleMonitoringLock($pdo, "scheduler_status");
+        if (!empty($cleanup["cleared"])) {
+            $lockState = monitoringLockState($pdo);
+        }
+    }
+    $nextRunInSeconds = 0;
+    if ($lastRunAgeSeconds !== null) {
+        $nextRunInSeconds = max(0, ($intervalMinutes * 60) - $lastRunAgeSeconds);
+    }
+
+    $queueStale = $lastRunAgeMinutes === null || (($lastRun["status"] ?? "") === "failed");
+    $canAutoRun = $canAutoRunRole
+        && $enabled
+        && $mode === "browser_demo"
+        && empty($lockState["active"])
+        && empty($lockState["stale"])
+        && empty($lockState["invalid"])
+        && $nextRunInSeconds === 0;
+    $blockedReason = null;
+    $message = "Ready to run monitoring.";
+    if (!$canAutoRunRole) {
+        $blockedReason = "unauthorized";
+        $message = "Only admins and superadmins can auto-run monitoring.";
+    } elseif (!$enabled) {
+        $blockedReason = "disabled";
+        $message = "Scheduler is disabled.";
+    } elseif ($mode !== "browser_demo") {
+        $blockedReason = $mode === "manual" ? "wrong_mode" : "wrong_mode";
+        $message = $mode === "external_cron" ? "External cron mode is active." : "Browser demo scheduler mode is not active.";
+    } elseif (!empty($lockState["active"])) {
+        $blockedReason = "lock_active";
+        $message = "Monitoring queue is already running.";
+    } elseif (!empty($lockState["stale"]) || !empty($lockState["invalid"])) {
+        $blockedReason = "stale_lock";
+        $message = "Monitoring lock needs attention before auto-run can continue.";
+    } elseif ($nextRunInSeconds > 0) {
+        $blockedReason = "waiting_interval";
+        $message = "Waiting for the configured interval.";
+    } elseif (!empty($cleanup["cleared"])) {
+        $message = "Stale lock cleaned. Ready to run monitoring.";
+    }
+
+    return [
+        "success" => true,
+        "scheduler_mode" => $mode,
+        "scheduler_enabled" => $enabled,
+        "is_admin" => $canAutoRunRole,
+        "last_run_at" => $lastRunAt,
+        "display_last_run_at" => $lastRunAt ? formatNucleusDateTime($lastRunAt) : "Never",
+        "last_run_age_minutes" => $lastRunAgeMinutes,
+        "last_run_age_seconds" => $lastRunAgeSeconds,
+        "interval_minutes" => $intervalMinutes,
+        "interval_seconds" => $intervalMinutes * 60,
+        "lock" => $lockState,
+        "lock_state" => $lockState["state"],
+        "lock_active" => $lockState["active"],
+        "queue_stale" => $queueStale,
+        "can_auto_run" => $canAutoRun,
+        "blocked_reason" => $blockedReason,
+        "can_auto_run_reason" => $message,
+        "message" => $message,
+        "stale_lock_cleanup" => $cleanup,
+        "next_run_in_seconds" => $nextRunInSeconds,
+    ];
 }
 
 function monitoringFailureThreshold(PDO $pdo): int
@@ -500,25 +597,156 @@ function monitoringFormatDuration(int $seconds): string
     return (int) floor($seconds / 86400) . "d";
 }
 
-function monitoringLockState(): array
+function monitoringLockTimeoutSeconds(?PDO $pdo = null): int
+{
+    $settings = $pdo ? monitoringSettings($pdo) : [];
+    $timeout = (int) ($settings["lock_timeout_seconds"] ?? 300);
+    return $timeout > 0 ? $timeout : 300;
+}
+
+function monitoringLockIsHeld(string $lockPath): ?bool
+{
+    if (!is_file($lockPath)) {
+        return null;
+    }
+
+    $handle = @fopen($lockPath, "c");
+    if (!$handle) {
+        return null;
+    }
+
+    $canLock = @flock($handle, LOCK_EX | LOCK_NB);
+    if ($canLock) {
+        @flock($handle, LOCK_UN);
+    }
+    @fclose($handle);
+
+    return !$canLock;
+}
+
+function monitoringLockState(?PDO $pdo = null): array
 {
     $lockPath = monitoringStoragePath("locks/monitoring.lock");
-    if (!file_exists($lockPath) || trim((string) @file_get_contents($lockPath)) === "") {
-        return ["state" => "idle", "label" => "Idle", "message" => "No active queue lock."];
+    $timeoutSeconds = monitoringLockTimeoutSeconds($pdo);
+    $base = [
+        "exists" => false,
+        "active" => false,
+        "stale" => false,
+        "invalid" => false,
+        "age_seconds" => null,
+        "age_minutes" => null,
+        "metadata" => [],
+        "state" => "idle",
+        "label" => "Idle",
+        "message" => "No active queue lock.",
+    ];
+
+    if (!file_exists($lockPath)) {
+        return $base;
+    }
+
+    $base["exists"] = true;
+    if (!is_file($lockPath) || !is_readable($lockPath)) {
+        $mtime = @filemtime($lockPath);
+        $age = $mtime ? max(0, time() - $mtime) : null;
+        $stale = $age === null || $age > $timeoutSeconds;
+        return array_merge($base, [
+            "invalid" => true,
+            "stale" => $stale,
+            "active" => !$stale,
+            "age_seconds" => $age,
+            "age_minutes" => $age === null ? null : (int) floor($age / 60),
+            "state" => $stale ? "stale" : "running",
+            "label" => $stale ? "Invalid stale lock" : "Invalid active lock",
+            "message" => $stale ? "Lock file is invalid and stale." : "Lock file is invalid but still within the active timeout.",
+        ]);
     }
 
     $raw = trim((string) @file_get_contents($lockPath));
+    if ($raw === "") {
+        return $base;
+    }
+
+    $held = monitoringLockIsHeld($lockPath);
     $metadata = json_decode($raw, true);
-    $started = is_array($metadata) ? ($metadata["started_at"] ?? null) : null;
-    $age = $started ? max(0, time() - strtotime((string) $started)) : null;
-    $stale = $age !== null && $age > 900;
+    $invalid = !is_array($metadata);
+    $started = !$invalid ? ($metadata["started_at"] ?? null) : null;
+    $startedTs = $started ? strtotime((string) $started) : false;
+    $mtime = @filemtime($lockPath);
+    $age = $startedTs !== false ? max(0, time() - $startedTs) : ($mtime ? max(0, time() - $mtime) : null);
+    $invalid = $invalid || $age === null;
+    $timedOut = $age === null || $age > $timeoutSeconds;
+    $orphaned = $held === false;
+    $active = $held === true;
+    $stale = $timedOut || $orphaned;
+    if ($held === null) {
+        $active = !$timedOut;
+        $stale = $timedOut;
+    }
+
+    $label = "Queue running";
+    $message = $age === null ? "Lock file is present but cannot be aged." : "Lock age: " . monitoringFormatDuration($age);
+    if ($orphaned) {
+        $label = $invalid ? "Invalid orphaned lock" : "Orphaned lock";
+        $message = "Lock metadata exists, but no process holds the queue lock.";
+    } elseif ($timedOut) {
+        $label = $invalid ? "Invalid stale lock" : ($active ? "Long-running queue" : "Stale lock");
+        $message = $active ? "Queue lock is still held beyond the timeout." : "Lock metadata is older than the timeout.";
+    } elseif ($invalid) {
+        $label = "Invalid active lock";
+    }
 
     return [
-        "state" => $stale ? "stale" : "running",
-        "label" => $stale ? "Stale lock" : "Running",
-        "message" => $age === null ? "Lock file is present." : "Lock age: " . monitoringFormatDuration($age),
+        "exists" => true,
+        "active" => $active,
+        "stale" => $stale,
+        "invalid" => $invalid,
+        "orphaned" => $orphaned,
+        "flock_held" => $held,
+        "age_seconds" => $age,
+        "age_minutes" => $age === null ? null : (int) floor($age / 60),
         "metadata" => is_array($metadata) ? $metadata : [],
+        "state" => $active ? "running" : ($stale ? "stale" : "idle"),
+        "label" => $label,
+        "message" => $message,
     ];
+}
+
+function clearStaleMonitoringLock(?PDO $pdo = null, string $source = "manual"): array
+{
+    $state = monitoringLockState($pdo);
+    if (empty($state["exists"])) {
+        return ["success" => true, "cleared" => false, "message" => "No monitoring lock exists."];
+    }
+    if (!empty($state["active"])) {
+        return ["success" => false, "cleared" => false, "reason" => "lock_active", "message" => "Active monitoring locks cannot be cleared."];
+    }
+    if (empty($state["stale"]) && empty($state["invalid"])) {
+        return ["success" => false, "cleared" => false, "reason" => "not_stale", "message" => "Monitoring lock is not stale."];
+    }
+
+    $lockPath = monitoringStoragePath("locks/monitoring.lock");
+    if (monitoringLockIsHeld($lockPath) === true) {
+        return ["success" => false, "cleared" => false, "reason" => "lock_active", "message" => "Active monitoring locks cannot be cleared."];
+    }
+
+    if (is_file($lockPath)) {
+        $cleared = @unlink($lockPath);
+    } else {
+        $cleared = false;
+    }
+    if (!$cleared) {
+        return ["success" => false, "cleared" => false, "reason" => "clear_failed", "message" => "The monitoring lock could not be cleared."];
+    }
+
+    monitoringLog("Stale monitoring lock cleared.", [
+        "source" => $source,
+        "ageSeconds" => $state["age_seconds"],
+        "invalid" => $state["invalid"],
+        "metadata" => $state["metadata"],
+    ]);
+
+    return ["success" => true, "cleared" => true, "message" => "Stale monitoring lock cleared."];
 }
 
 function monitoringFreshness(?string $lastSuccessfulCheck, ?string $remoteUpdatedAt, int $staleMinutes = null): array

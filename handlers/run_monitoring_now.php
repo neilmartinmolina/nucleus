@@ -91,10 +91,15 @@ if (!in_array($role, ["admin", "superadmin"], true)) {
 }
 
 $startedAtMs = (int) round(microtime(true) * 1000);
+$settings = monitoringSettings($pdo);
+$batchSize = max(1, min((int) ($settings["scheduler_batch_size"] ?? ($settings["batch_size"] ?? NUCLEUS_MONITORING_DEFAULT_BATCH_SIZE)), 100));
+$force = !empty($settings["scheduler_force"]);
+$source = preg_replace('/[^a-z0-9_]/i', "", (string) ($_POST["source"] ?? "manual"));
+$source = in_array($source, ["manual", "browser_demo"], true) ? $source : "manual";
 $scriptPath = __DIR__ . "/run_monitoring_queue.php";
 $phpBinary = monitoringNowPhpBinary();
-$command = escapeshellarg($phpBinary) . " " . escapeshellarg($scriptPath) . " batch=3";
-if (isLocal()) {
+$command = escapeshellarg($phpBinary) . " " . escapeshellarg($scriptPath) . " batch=" . $batchSize . " " . escapeshellarg("source=" . $source);
+if ($force) {
     $command .= " --force";
 }
 $command .= " 2>&1";
@@ -124,17 +129,24 @@ if (!is_array($queueResult)) {
 }
 
 $success = $exitCode === 0 && !empty($queueResult["success"]);
+$skipped = !empty($queueResult["skipped"]) || (($queueResult["status"] ?? "") === "skipped");
+$reason = (string) ($queueResult["reason"] ?? ($skipped ? "skipped" : ""));
 $checked = (int) ($queueResult["checked"] ?? 0);
 $errors = (int) ($queueResult["errors"] ?? 0);
 $runId = isset($queueResult["runId"]) ? (int) $queueResult["runId"] : null;
 $message = $queueResult["message"] ?? ($success ? "Monitoring queue completed." : "Monitoring queue failed.");
 $message = monitoringNowSafeMessage((string) $message, $success);
+$latestRun = monitoringLastRun($pdo);
 
-monitoringNowResponse($success ? 200 : 500, [
+monitoringNowResponse($success || $skipped ? 200 : 500, [
     "success" => $success,
     "message" => $message,
     "checked_count" => $checked,
     "error_count" => $errors,
     "duration_ms" => (int) ($queueResult["durationMs"] ?? $durationMs),
     "latest_run_id" => $runId,
+    "skipped" => $skipped,
+    "reason" => $reason,
+    "last_run_at" => $latestRun["started_at"] ?? null,
+    "display_last_run_at" => !empty($latestRun["started_at"]) ? formatNucleusDateTime($latestRun["started_at"]) : "Never",
 ]);

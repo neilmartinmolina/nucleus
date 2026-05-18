@@ -61,10 +61,15 @@ CREATE TABLE IF NOT EXISTS monitoring_settings (
 INSERT INTO monitoring_settings (setting_key, setting_value)
 VALUES
     ('scheduler_mode', 'manual'),
-    ('check_interval_minutes', '5'),
+    ('scheduler_enabled', '0'),
+    ('scheduler_interval_minutes', '2'),
+    ('scheduler_batch_size', '3'),
+    ('scheduler_force', '0'),
+    ('lock_timeout_seconds', '300'),
+    ('check_interval_minutes', '2'),
     ('stale_after_minutes', '10'),
     ('failure_threshold', '3'),
-    ('batch_size', '10'),
+    ('batch_size', '3'),
     ('response_slow_ms', '3000'),
     ('retention_days', '30')
 ON DUPLICATE KEY UPDATE setting_value = setting_value;

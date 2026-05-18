@@ -649,7 +649,6 @@ $dashboardPayload = [
         let statusPollStartTimer = null;
         let monitoringSchedulerTimer = null;
         let monitoringSchedulerRunning = false;
-        const monitoringSchedulerLastRunKey = 'nucleus.monitoring.browserDemo.lastRunMs';
 
         function statusBadgeClasses(status, compact = false) {
             if (compact) {
@@ -833,14 +832,22 @@ $dashboardPayload = [
             }
 
             try {
+                const body = new FormData();
+                body.append('source', options.source || (silent ? 'browser_demo' : 'manual'));
                 const response = await fetch('handlers/run_monitoring_now.php', {
                     method: 'POST',
-                    headers: { 'Accept': 'application/json' }
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' },
+                    body
                 });
                 ensureAuthenticatedResponse(response);
                 const result = await response.json();
                 if (result.success) {
+                    applyMonitoringRunSummary(result);
                     await refreshProjectStatuses(contentEl);
+                    if (typeof window.refreshNucleusMonitoringCharts === 'function') {
+                        await window.refreshNucleusMonitoringCharts();
+                    }
                     if (!silent) {
                         await Swal.fire({
                             icon: 'success',
@@ -879,42 +886,161 @@ $dashboardPayload = [
             }
         }
 
+        function formatDurationMs(durationMs) {
+            durationMs = Math.max(0, parseInt(durationMs || 0, 10));
+            return durationMs > 0 ? `${Math.round((durationMs / 1000) * 100) / 100}s` : '-';
+        }
+
+        function applyMonitoringRunSummary(result = {}) {
+            const lastRun = contentEl.querySelector('[data-monitoring-last-run-display]');
+            if (lastRun && result.display_last_run_at) {
+                lastRun.textContent = result.display_last_run_at;
+            }
+            const duration = contentEl.querySelector('[data-monitoring-duration-display]');
+            if (duration && Object.prototype.hasOwnProperty.call(result, 'duration_ms')) {
+                duration.textContent = formatDurationMs(result.duration_ms);
+            }
+            const checked = contentEl.querySelector('[data-monitoring-checked-display]');
+            if (checked && Object.prototype.hasOwnProperty.call(result, 'checked_count')) {
+                checked.textContent = String(result.checked_count || 0);
+            }
+            const errors = contentEl.querySelector('[data-monitoring-errors-display]');
+            if (errors && Object.prototype.hasOwnProperty.call(result, 'error_count')) {
+                errors.textContent = String(result.error_count || 0);
+            }
+        }
+
         function initMonitoringBrowserScheduler(scope = contentEl) {
             stopMonitoringBrowserScheduler();
             const scheduler = scope.querySelector('[data-monitoring-scheduler]');
-            if (!scheduler || scheduler.dataset.schedulerMode !== 'browser_demo' || scheduler.dataset.canRunMonitoring !== '1') {
+            if (!scheduler || scheduler.dataset.schedulerMode !== 'browser_demo' || scheduler.dataset.schedulerEnabled !== '1' || scheduler.dataset.canRunMonitoring !== '1') {
                 return;
             }
 
-            const intervalMinutes = Math.max(1, parseInt(scheduler.dataset.monitoringIntervalMinutes || '5', 10));
-            const intervalMs = intervalMinutes * 60 * 1000;
-            const serverLastRunMs = parseInt(scheduler.dataset.monitoringLastRunMs || '0', 10) || 0;
-            const storedLastRunMs = parseInt(localStorage.getItem(monitoringSchedulerLastRunKey) || '0', 10) || 0;
-            if (serverLastRunMs > storedLastRunMs) {
-                localStorage.setItem(monitoringSchedulerLastRunKey, String(serverLastRunMs));
+            const indicator = scheduler.querySelector('[data-browser-scheduler-indicator]');
+            const lastEl = scheduler.querySelector('[data-browser-scheduler-last]');
+            const nextEl = scheduler.querySelector('[data-browser-scheduler-next]');
+            const statusEl = scheduler.querySelector('[data-browser-scheduler-status]');
+            const lockEl = scheduler.querySelector('[data-browser-scheduler-lock]');
+            const warningEl = scheduler.querySelector('[data-browser-scheduler-warning]');
+            const runStateEl = scheduler.querySelector('[data-browser-scheduler-run-state]');
+            let nextRunSeconds = 0;
+            let statusRefreshSeconds = 0;
+            const statusPollSeconds = 15;
+
+            function formatCountdown(seconds) {
+                seconds = Math.max(0, parseInt(seconds || 0, 10));
+                if (seconds < 60) return `${seconds}s`;
+                const minutes = Math.floor(seconds / 60);
+                const remainder = seconds % 60;
+                return remainder ? `${minutes}m ${remainder}s` : `${minutes}m`;
+            }
+
+            function formatDateTime(value) {
+                if (!value) return 'Never';
+                const date = new Date(String(value).replace(' ', 'T'));
+                return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+            }
+
+            function setWarning(message) {
+                if (!warningEl) return;
+                warningEl.textContent = message || '';
+                warningEl.classList.toggle('hidden', !message);
+            }
+
+            function setRunState(state, label) {
+                if (!runStateEl) return;
+                runStateEl.classList.remove('is-idle', 'is-running', 'is-finished', 'is-blocked', 'is-failed');
+                runStateEl.classList.add(`is-${state}`);
+                runStateEl.textContent = label;
+            }
+
+            function updateIndicator(status) {
+                if (indicator) indicator.classList.remove('hidden');
+                if (lastEl) lastEl.textContent = status.display_last_run_at || formatDateTime(status.last_run_at);
+                if (statusEl) statusEl.textContent = status.message || (status.can_auto_run ? 'Ready to run monitoring.' : 'Waiting.');
+                if (lockEl) lockEl.textContent = status.lock?.label || 'No lock';
+                if (status.lock?.active) {
+                    setRunState('blocked', 'Queue running');
+                } else if (status.blocked_reason && status.blocked_reason !== 'waiting_interval') {
+                    setRunState('blocked', 'Blocked');
+                } else {
+                    setRunState('idle', 'Idle');
+                }
+                applyMonitoringRunSummary({ display_last_run_at: status.display_last_run_at });
+                nextRunSeconds = Math.max(0, parseInt(status.next_run_in_seconds || 0, 10));
+                if (nextEl) nextEl.textContent = formatCountdown(nextRunSeconds);
+            }
+
+            async function fetchSchedulerStatus() {
+                const response = await fetch('handlers/scheduler_status.php', {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' }
+                });
+                ensureAuthenticatedResponse(response);
+                return response.json();
             }
 
             async function tick() {
                 if (monitoringSchedulerRunning) return;
-                if ((scheduler.dataset.monitoringLockState || '') === 'running') return;
-
-                const lastRunMs = parseInt(localStorage.getItem(monitoringSchedulerLastRunKey) || '0', 10) || 0;
-                if (Date.now() - lastRunMs < intervalMs) return;
-
                 monitoringSchedulerRunning = true;
-                localStorage.setItem(monitoringSchedulerLastRunKey, String(Date.now()));
                 try {
-                    const result = await runMonitoringNow({ silent: true });
-                    if (result && result.success) {
-                        scheduler.dataset.monitoringLastRunMs = String(Date.now());
+                    const status = await fetchSchedulerStatus();
+                    updateIndicator(status);
+                    if (!status.can_auto_run) {
+                        const reason = status.message || status.can_auto_run_reason || '';
+                        setWarning(reason === 'Waiting for the configured interval.' ? '' : reason);
+                        return;
                     }
+                    if (statusEl) statusEl.textContent = 'Running now...';
+                    setRunState('running', 'Running auto-run');
+                    const result = await runMonitoringNow({ silent: true, source: 'browser_demo' });
+                    if (result && result.success) {
+                        setWarning('');
+                        setRunState('finished', `Finished: ${result.checked_count || 0} checked`);
+                        if (statusEl) statusEl.textContent = result.message || 'Monitoring auto-run complete.';
+                        if (window.Swal) {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Monitoring auto-run complete',
+                                showConfirmButton: false,
+                                timer: 2400,
+                                timerProgressBar: true
+                            });
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1200));
+                        await refreshDashboardContent('dashboard');
+                    } else {
+                        setRunState(result?.skipped ? 'blocked' : 'failed', result?.skipped ? 'Skipped' : 'Failed');
+                        setWarning(result.message || 'Auto-run failed. Use manual run if needed.');
+                        nextRunSeconds = statusPollSeconds;
+                        if (nextEl) nextEl.textContent = formatCountdown(nextRunSeconds);
+                    }
+                } catch (err) {
+                    setRunState('failed', 'Failed');
+                    setWarning('Auto-run check failed. Use manual run if needed.');
+                    nextRunSeconds = statusPollSeconds;
+                    if (nextEl) nextEl.textContent = formatCountdown(nextRunSeconds);
+                    console.debug('Browser demo scheduler failed', err);
                 } finally {
                     monitoringSchedulerRunning = false;
                 }
             }
 
-            monitoringSchedulerTimer = setInterval(tick, Math.min(intervalMs, 60000));
-            setTimeout(tick, 5000);
+            tick();
+            monitoringSchedulerTimer = setInterval(() => {
+                if (nextRunSeconds > 0) {
+                    nextRunSeconds--;
+                    if (nextEl) nextEl.textContent = formatCountdown(nextRunSeconds);
+                }
+                statusRefreshSeconds++;
+                if (nextRunSeconds === 0 || statusRefreshSeconds >= statusPollSeconds) {
+                    statusRefreshSeconds = 0;
+                    tick();
+                }
+            }, 1000);
         }
 
         async function refreshProjectStatuses(scope = contentEl) {
@@ -1004,6 +1130,19 @@ $dashboardPayload = [
                 if (key !== 'tab') historyParams.set(key, value);
             });
             history.pushState({ page }, '', '?' + historyParams.toString());
+        }
+
+        async function refreshDashboardContent(page = 'dashboard') {
+            const params = new URLSearchParams(window.location.search);
+            params.set('tab', page);
+            params.set('_scheduler_refresh', String(Date.now()));
+            const response = await fetch('get_content.php?' + params.toString(), {
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            ensureAuthenticatedResponse(response);
+            const html = await response.text();
+            renderContent(page, html);
         }
 
         function runExternalTableSearch(input) {

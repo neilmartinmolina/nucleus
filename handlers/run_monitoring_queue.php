@@ -106,13 +106,14 @@ function queueLockAgeSeconds(array $metadata): ?int
     return max(0, time() - $startedAt);
 }
 
-function queueWriteLockMetadata($lockHandle, int $runId, int $batchSize, bool $force): void
+function queueWriteLockMetadata($lockHandle, int $runId, int $batchSize, bool $force, string $source): void
 {
     $metadata = [
         "pid" => function_exists("getmypid") ? getmypid() : null,
-        "started_at" => date("c"),
+        "started_at" => date("Y-m-d H:i:s"),
         "run_id" => $runId,
-        "batch_size" => $batchSize,
+        "source" => $source,
+        "batch" => $batchSize,
         "force" => $force,
     ];
 
@@ -130,6 +131,8 @@ $settings = monitoringSettings($pdo);
 $batchSize = (int) ($_GET["batch"] ?? ($_ENV["MONITORING_BATCH_SIZE"] ?? ($settings["batch_size"] ?? NUCLEUS_MONITORING_DEFAULT_BATCH_SIZE)));
 $batchSize = max(1, min($batchSize, 100));
 $force = (string) ($_GET["force"] ?? "") === "1";
+$source = preg_replace('/[^a-z0-9_]/i', "", (string) ($_GET["source"] ?? ($isCli ? "cli" : "cron")));
+$source = in_array($source, ["manual", "browser_demo", "cli", "cron"], true) ? $source : ($isCli ? "cli" : "cron");
 
 if ($isCli && !empty($argv)) {
     foreach (array_slice($argv, 1) as $arg) {
@@ -137,11 +140,13 @@ if ($isCli && !empty($argv)) {
             $force = true;
         } elseif (preg_match('/^batch=(\d+)$/', $arg, $matches)) {
             $batchSize = max(1, min((int) $matches[1], 100));
+        } elseif (preg_match('/^source=([a-z0-9_]+)$/i', $arg, $matches)) {
+            $source = in_array($matches[1], ["manual", "browser_demo", "cli", "cron"], true) ? $matches[1] : "cli";
         }
     }
 }
 
-$lockStaleAfterSeconds = max(900, $batchSize * 30);
+$lockStaleAfterSeconds = monitoringLockTimeoutSeconds($pdo);
 $startedAtMs = (int) round(microtime(true) * 1000);
 $lockPath = monitoringStoragePath("locks/monitoring.lock");
 if (!queuePrepareLockFile($lockPath)) {
@@ -151,7 +156,7 @@ if (!queuePrepareLockFile($lockPath)) {
         "success" => false,
         "status" => "failed",
         "runId" => $runId,
-        "message" => "Monitoring lock path is invalid. Check storage/locks/monitoring.lock.",
+        "message" => "Monitoring lock path is invalid.",
         "checked" => 0,
         "errors" => 1,
     ]);
@@ -160,49 +165,46 @@ if (!queuePrepareLockFile($lockPath)) {
 $lockHandle = fopen($lockPath, "c");
 
 if (!$lockHandle || !flock($lockHandle, LOCK_EX | LOCK_NB)) {
-    $lockMetadata = queueLockMetadata($lockPath);
-    $lockAgeSeconds = queueLockAgeSeconds($lockMetadata);
+    $lockState = monitoringLockState($pdo);
     monitoringLog("Monitoring queue already running.", [
-        "lockAgeSeconds" => $lockAgeSeconds,
+        "lockAgeSeconds" => $lockState["age_seconds"] ?? null,
         "lockStaleAfterSeconds" => $lockStaleAfterSeconds,
-        "lockMetadata" => $lockMetadata,
+        "lockMetadata" => $lockState["metadata"] ?? [],
     ]);
     $runId = monitoringStartRun($pdo, $batchSize);
     $message = "Monitoring queue already running.";
-    if ($lockAgeSeconds !== null && $lockAgeSeconds > $lockStaleAfterSeconds) {
-        $message .= " Lock metadata appears stale, but an active filesystem lock is still held.";
-    }
     monitoringFinishRun($pdo, $runId, "skipped", 0, 0, 0, $message, $startedAtMs);
     queueResponse(200, [
-        "success" => true,
+        "success" => false,
+        "skipped" => true,
+        "reason" => "lock_active",
         "status" => "skipped",
         "message" => $message,
         "checked" => 0,
         "skipped" => 0,
         "errors" => 0,
-        "lockAgeSeconds" => $lockAgeSeconds,
+        "lockAgeSeconds" => $lockState["age_seconds"] ?? null,
     ]);
 }
 
 $runId = monitoringStartRun($pdo, $batchSize);
-$previousLockMetadata = queueLockMetadata($lockPath);
-$previousLockAgeSeconds = queueLockAgeSeconds($previousLockMetadata);
-if ($previousLockAgeSeconds !== null && $previousLockAgeSeconds > $lockStaleAfterSeconds) {
+$previousLockState = monitoringLockState($pdo);
+if (!empty($previousLockState["stale"])) {
     monitoringLog("Replacing stale monitoring lock metadata.", [
         "runId" => $runId,
-        "lockAgeSeconds" => $previousLockAgeSeconds,
+        "lockAgeSeconds" => $previousLockState["age_seconds"],
         "lockStaleAfterSeconds" => $lockStaleAfterSeconds,
-        "lockMetadata" => $previousLockMetadata,
+        "lockMetadata" => $previousLockState["metadata"],
     ]);
 }
-queueWriteLockMetadata($lockHandle, $runId, $batchSize, $force);
+queueWriteLockMetadata($lockHandle, $runId, $batchSize, $force, $source);
 $checked = 0;
 $errors = 0;
 $results = [];
 $selectedProjectIds = [];
 
 try {
-    monitoringLog("Monitoring queue started.", ["runId" => $runId, "batchSize" => $batchSize, "force" => $force]);
+    monitoringLog("Monitoring queue started.", ["runId" => $runId, "batchSize" => $batchSize, "force" => $force, "source" => $source]);
 
     $projects = monitoringSelectProjectsForQueue($pdo, $batchSize, $force);
     $selectedProjectIds = array_map(static fn($project) => (int) $project["project_id"], $projects);
@@ -278,9 +280,12 @@ try {
         "durationMs" => $durationMs,
     ]);
 } finally {
-    ftruncate($lockHandle, 0);
-    rewind($lockHandle);
-    fflush($lockHandle);
-    flock($lockHandle, LOCK_UN);
-    fclose($lockHandle);
+    if (is_resource($lockHandle)) {
+        ftruncate($lockHandle, 0);
+        rewind($lockHandle);
+        fflush($lockHandle);
+        flock($lockHandle, LOCK_UN);
+        fclose($lockHandle);
+        @unlink($lockPath);
+    }
 }

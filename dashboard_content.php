@@ -19,9 +19,10 @@ $totalUsers = (int) $pdo->query("SELECT COUNT(*) AS c FROM users")->fetch()["c"]
 $monitoringSettings = monitoringSettings($pdo);
 $schedulerMode = monitoringNormalizeSchedulerMode((string) ($monitoringSettings["scheduler_mode"] ?? ""));
 $schedulerModes = monitoringSchedulerModes();
+$schedulerStatus = monitoringSchedulerStatus($pdo, $canRunMonitoringNow);
 $lastMonitoringRun = monitoringLastRun($pdo);
 $monitoringLockState = monitoringLockState();
-$monitoringIntervalMinutes = max(1, (int) ($monitoringSettings["check_interval_minutes"] ?? 5));
+$monitoringIntervalMinutes = max(1, (int) ($monitoringSettings["scheduler_interval_minutes"] ?? 2));
 $lastMonitoringRunStartedMs = $lastMonitoringRun ? (int) strtotime($lastMonitoringRun["started_at"]) * 1000 : 0;
 $monitoringStaleAfter = max(1, (int) ($monitoringSettings["stale_after_minutes"] ?? 10));
 $monitoringIsBroken = false;
@@ -128,11 +129,11 @@ $loadTimeRows = array_reverse($loadTimeRows);
 $loadLabels = [];
 $loadValues = [];
 foreach ($loadTimeRows as $row) {
-    $loadLabels[] = date("H:i", strtotime($row["checked_at"]));
+    $loadLabels[] = date("g:i A", strtotime($row["checked_at"]));
     $loadValues[] = round(((int) $row["response_time_ms"]) / 1000, 2);
 }
 if (!$loadLabels) {
-    $loadLabels = ["00:00", "03:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00"];
+    $loadLabels = ["12:00 AM", "3:00 AM", "6:00 AM", "9:00 AM", "12:00 PM", "3:00 PM", "6:00 PM", "9:00 PM"];
     $loadValues = [0.8, 1.1, 0.9, 1.4, 1.2, 1.6, 1.3, 1.5];
 }
 
@@ -210,6 +211,7 @@ $schedulerLabel = $schedulerModes[$schedulerMode]["label"] ?? "Manual";
   class="nucleus-bento"
   data-monitoring-scheduler
   data-scheduler-mode="<?php echo htmlspecialchars($schedulerMode); ?>"
+  data-scheduler-enabled="<?php echo !empty($monitoringSettings["scheduler_enabled"]) ? "1" : "0"; ?>"
   data-monitoring-interval-minutes="<?php echo $monitoringIntervalMinutes; ?>"
   data-monitoring-lock-state="<?php echo htmlspecialchars($monitoringLockState["state"] ?? "idle"); ?>"
   data-monitoring-last-run-ms="<?php echo $lastMonitoringRunStartedMs; ?>"
@@ -292,27 +294,43 @@ $schedulerLabel = $schedulerModes[$schedulerMode]["label"] ?? "Manual";
       <?php endforeach; ?>
     </div>
     <?php if ($canRunMonitoringNow): ?>
-    <button type="button" data-run-monitoring-now class="diagnostics-button">Run Diagnostics</button>
+    <button type="button" data-run-monitoring-now class="diagnostics-button">Run Monitoring Now</button>
     <?php else: ?>
     <a href="dashboard.php?page=alerts" class="diagnostics-button">View Diagnostics</a>
+    <?php endif; ?>
+    <?php if ($canRunMonitoringNow && $schedulerMode === "browser_demo" && !empty($monitoringSettings["scheduler_enabled"])): ?>
+    <div class="scheduler-indicator mt-3" data-browser-scheduler-indicator>
+      <strong>Browser demo scheduler active</strong>
+      <span class="scheduler-run-state is-idle" data-browser-scheduler-run-state>Idle</span>
+      <span>Status: <b data-browser-scheduler-status><?php echo htmlspecialchars($schedulerStatus["message"] ?? "Waiting for status."); ?></b></span>
+      <span>Mode: <b><?php echo htmlspecialchars($schedulerLabel); ?></b> · <b><?php echo !empty($monitoringSettings["scheduler_enabled"]) ? "Enabled" : "Disabled"; ?></b></span>
+      <span>Last run: <b data-browser-scheduler-last>Never</b></span>
+      <span>Next run in: <b data-browser-scheduler-next><?php echo (int) $schedulerStatus["next_run_in_seconds"]; ?>s</b></span>
+      <span>Lock: <b data-browser-scheduler-lock><?php echo htmlspecialchars($schedulerStatus["lock"]["label"] ?? "No lock"); ?></b></span>
+      <span class="hidden text-amber-700" data-browser-scheduler-warning></span>
+    </div>
+    <?php elseif ($schedulerMode === "external_cron" && $schedulerStatus["queue_stale"]): ?>
+    <div class="scheduler-indicator mt-3 is-warning">
+      External scheduler appears inactive. Use manual run or switch to browser demo scheduler.
+    </div>
     <?php endif; ?>
   </article>
 
   <article class="bento-card tile-metric">
     <p>Last Run</p>
-    <strong><?php echo $lastMonitoringRun ? htmlspecialchars(formatNucleusDateTime($lastMonitoringRun["started_at"])) : "Never"; ?></strong>
+    <strong data-monitoring-last-run-display><?php echo $lastMonitoringRun ? htmlspecialchars(formatNucleusDateTime($lastMonitoringRun["started_at"])) : "Never"; ?></strong>
   </article>
   <article class="bento-card tile-metric">
     <p>Duration</p>
-    <strong><?php echo htmlspecialchars($durationLabel); ?></strong>
+    <strong data-monitoring-duration-display><?php echo htmlspecialchars($durationLabel); ?></strong>
   </article>
   <article class="bento-card tile-metric">
     <p>Checked</p>
-    <strong><?php echo htmlspecialchars($checkedLabel); ?></strong>
+    <strong data-monitoring-checked-display><?php echo htmlspecialchars($checkedLabel); ?></strong>
   </article>
   <article class="bento-card tile-metric">
     <p>Errors</p>
-    <strong><?php echo htmlspecialchars($errorLabel); ?></strong>
+    <strong data-monitoring-errors-display><?php echo htmlspecialchars($errorLabel); ?></strong>
   </article>
   <article class="bento-card tile-metric">
     <p>Queue Lock</p>
@@ -588,6 +606,53 @@ $schedulerLabel = $schedulerModes[$schedulerMode]["label"] ?? "Manual";
     cursor: wait;
     opacity: 0.65;
   }
+  .scheduler-indicator {
+    display: grid;
+    gap: 0.25rem;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.5rem;
+    background: #eff6ff;
+    padding: 0.65rem;
+    color: #334155;
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+  .scheduler-indicator strong {
+    color: #043873;
+    font-size: 0.8rem;
+  }
+  .scheduler-run-state {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+  .scheduler-run-state.is-idle {
+    background: #e2e8f0;
+    color: #475569;
+  }
+  .scheduler-run-state.is-running {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+  .scheduler-run-state.is-finished {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .scheduler-run-state.is-blocked,
+  .scheduler-run-state.is-failed {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .scheduler-indicator.is-warning {
+    border-color: #fde68a;
+    background: #fffbeb;
+    color: #92400e;
+    font-weight: 700;
+  }
   .storage-bars {
     display: grid;
     gap: 0.45rem;
@@ -773,7 +838,15 @@ $schedulerLabel = $schedulerModes[$schedulerMode]["label"] ?? "Manual";
     Chart.defaults.responsive = true;
     Chart.defaults.maintainAspectRatio = false;
 
-    new Chart(loadCanvas, {
+    window.nucleusDashboardCharts = window.nucleusDashboardCharts || {};
+    if (window.nucleusDashboardCharts.load) {
+      window.nucleusDashboardCharts.load.destroy();
+    }
+    if (window.nucleusDashboardCharts.errors) {
+      window.nucleusDashboardCharts.errors.destroy();
+    }
+
+    window.nucleusDashboardCharts.load = new Chart(loadCanvas, {
       type: 'line',
       data: {
         labels: <?php echo json_encode($loadLabels); ?>,
@@ -797,7 +870,7 @@ $schedulerLabel = $schedulerModes[$schedulerMode]["label"] ?? "Manual";
       }
     });
 
-    new Chart(errorCanvas, {
+    window.nucleusDashboardCharts.errors = new Chart(errorCanvas, {
       type: 'doughnut',
       data: {
         labels: <?php echo json_encode($severityLabels); ?>,
@@ -812,6 +885,18 @@ $schedulerLabel = $schedulerModes[$schedulerMode]["label"] ?? "Manual";
       },
       options: { plugins: { legend: { display: false } } }
     });
+
+    window.refreshNucleusMonitoringCharts = async function refreshNucleusMonitoringCharts() {
+      const response = await fetch('handlers/monitoring_chart_data.php', {
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
+      const result = await response.json();
+      if (!result.success || !window.nucleusDashboardCharts?.load) return;
+      window.nucleusDashboardCharts.load.data.labels = result.load_time.labels || [];
+      window.nucleusDashboardCharts.load.data.datasets[0].data = result.load_time.values || [];
+      window.nucleusDashboardCharts.load.update('none');
+    };
   }).catch(error => console.error('Chart.js failed to load', error));
 })();
 </script>

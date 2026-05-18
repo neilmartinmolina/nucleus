@@ -11,6 +11,12 @@ $isAdmin = isAdminLike();
 $monitoringSettings = monitoringSettings($pdo);
 $schedulerMode = monitoringNormalizeSchedulerMode((string) ($monitoringSettings["scheduler_mode"] ?? ""));
 $schedulerModes = monitoringSchedulerModes();
+$schedulerStatus = monitoringSchedulerStatus($pdo, $isAdmin);
+$schedulerEnabled = !empty($monitoringSettings["scheduler_enabled"]);
+$schedulerIntervalMinutes = max(1, (int) ($monitoringSettings["scheduler_interval_minutes"] ?? 2));
+$schedulerBatchSize = max(1, (int) ($monitoringSettings["scheduler_batch_size"] ?? 3));
+$schedulerForce = !empty($monitoringSettings["scheduler_force"]);
+$lockTimeoutSeconds = max(60, (int) ($monitoringSettings["lock_timeout_seconds"] ?? 300));
 $lastRun = monitoringLastRun($pdo);
 $lockState = monitoringLockState();
 $cronCommand = monitoringCronCommand($monitoringSettings);
@@ -67,11 +73,11 @@ function settingsBadge(bool $ok): string
   <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h2 class="text-lg font-semibold text-slate-800">Monitoring Settings</h2>
-        <p class="mt-1 text-sm text-slate-500">Choose how the global monitoring queue starts. The manual fallback run is available in every mode.</p>
+        <h2 class="text-lg font-semibold text-slate-800">Monitoring Scheduler</h2>
+        <p class="mt-1 text-sm text-slate-500">Choose how the global monitoring queue starts. Browser demo scheduling is for local/demo use; the manual fallback remains available in every mode.</p>
       </div>
       <?php if ($isAdmin): ?>
-      <button type="button" data-run-monitoring-now class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-60">Manual fallback run</button>
+      <button type="button" data-run-monitoring-now class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-60">Run Monitoring Now</button>
       <?php endif; ?>
     </div>
     <?php if ($isAdmin): ?>
@@ -79,21 +85,53 @@ function settingsBadge(bool $ok): string
       <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION["csrf_token"]); ?>">
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <label class="block rounded-lg border border-slate-100 bg-slate-50 p-4">
-          <span class="text-xs font-medium uppercase text-slate-500">Scheduler mode</span>
-          <select name="scheduler_mode" class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20">
-            <?php foreach ($schedulerModes as $modeKey => $mode): ?>
-            <option value="<?php echo htmlspecialchars($modeKey); ?>" <?php echo $schedulerMode === $modeKey ? "selected" : ""; ?>><?php echo htmlspecialchars($mode["label"]); ?></option>
-            <?php endforeach; ?>
-          </select>
-          <span class="mt-2 block text-xs text-slate-500"><?php echo htmlspecialchars($schedulerModes[$schedulerMode]["description"] ?? ""); ?></span>
+          <span class="flex items-start gap-3">
+            <input type="radio" name="scheduler_mode" value="manual" <?php echo $schedulerMode === "manual" ? "checked" : ""; ?> class="mt-1 h-4 w-4 border-slate-300 text-cta">
+            <span>
+              <span class="block font-semibold text-slate-800">Manual only</span>
+              <span class="mt-1 block text-xs text-slate-500">Only the manual button starts monitoring.</span>
+            </span>
+          </span>
+        </label>
+        <label class="block rounded-lg border border-slate-100 bg-slate-50 p-4">
+          <span class="flex items-start gap-3">
+            <input type="radio" name="scheduler_mode" value="browser_demo" <?php echo $schedulerMode === "browser_demo" ? "checked" : ""; ?> class="mt-1 h-4 w-4 border-slate-300 text-cta">
+            <span>
+              <span class="block font-semibold text-slate-800">Browser demo scheduler</span>
+              <span class="mt-1 block text-xs text-slate-500">Admin dashboard tabs may call the protected handler on a timer.</span>
+            </span>
+          </span>
+        </label>
+        <label class="block rounded-lg border border-slate-100 bg-slate-50 p-4">
+          <span class="flex items-start gap-3">
+            <input type="radio" name="scheduler_mode" value="external_cron" <?php echo $schedulerMode === "external_cron" ? "checked" : ""; ?> class="mt-1 h-4 w-4 border-slate-300 text-cta">
+            <span>
+              <span class="block font-semibold text-slate-800">External cron/task scheduler</span>
+              <span class="mt-1 block text-xs text-slate-500">Use server cron or Windows Task Scheduler; the browser will not auto-run.</span>
+            </span>
+          </span>
+        </label>
+      </div>
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <label class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm font-medium text-slate-700">
+          <input type="checkbox" name="scheduler_enabled" value="1" <?php echo $schedulerEnabled ? "checked" : ""; ?> class="h-4 w-4 rounded border-slate-300 text-cta">
+          Enable selected scheduler mode
         </label>
         <label class="block rounded-lg border border-slate-100 bg-slate-50 p-4">
           <span class="text-xs font-medium uppercase text-slate-500">Interval minutes</span>
-          <input type="number" min="1" max="1440" name="check_interval_minutes" value="<?php echo (int) ($monitoringSettings["check_interval_minutes"] ?? 5); ?>" class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20">
+          <input type="number" min="1" max="1440" name="scheduler_interval_minutes" value="<?php echo $schedulerIntervalMinutes; ?>" class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20">
         </label>
         <label class="block rounded-lg border border-slate-100 bg-slate-50 p-4">
           <span class="text-xs font-medium uppercase text-slate-500">Batch size</span>
-          <input type="number" min="1" max="100" name="batch_size" value="<?php echo (int) ($monitoringSettings["batch_size"] ?? 10); ?>" class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20">
+          <input type="number" min="1" max="100" name="scheduler_batch_size" value="<?php echo $schedulerBatchSize; ?>" class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20">
+        </label>
+        <label class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm font-medium text-slate-700">
+          <input type="checkbox" name="scheduler_force" value="1" <?php echo $schedulerForce ? "checked" : ""; ?> class="h-4 w-4 rounded border-slate-300 text-cta">
+          Force queue selection
+        </label>
+        <label class="block rounded-lg border border-slate-100 bg-slate-50 p-4">
+          <span class="text-xs font-medium uppercase text-slate-500">Lock timeout seconds</span>
+          <input type="number" min="60" max="3600" name="lock_timeout_seconds" value="<?php echo $lockTimeoutSeconds; ?>" class="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20">
         </label>
         <label class="block rounded-lg border border-slate-100 bg-slate-50 p-4">
           <span class="text-xs font-medium uppercase text-slate-500">Stale after minutes</span>
@@ -125,13 +163,31 @@ function settingsBadge(bool $ok): string
       Last queue run: <strong class="text-slate-800"><?php echo $lastRun ? htmlspecialchars(formatNucleusDateTime($lastRun["started_at"])) : "Never"; ?></strong>
       · Status: <strong class="text-slate-800"><?php echo htmlspecialchars($lastRun["status"] ?? "none"); ?></strong>
       · Lock: <strong class="text-slate-800"><?php echo htmlspecialchars($lockState["label"]); ?></strong>
+      <span class="mt-1 block text-xs text-slate-500"><?php echo htmlspecialchars($lockState["message"] ?? ""); ?></span>
+      <?php if ($isAdmin && (!empty($lockState["stale"]) || !empty($lockState["invalid"]))): ?>
+      <form method="POST" action="handlers/clear_monitoring_lock.php" data-return-page="settings" class="mt-3">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION["csrf_token"]); ?>">
+        <button
+          type="submit"
+          class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Clear stale lock
+        </button>
+        <p class="mt-2 text-xs text-slate-500">
+          Use this only when the lock is stale and auto-runs are blocked.
+        </p>
+      </form>
+      <?php endif; ?>
     </div>
     <div class="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
       <p><strong class="text-slate-800">Queue diagnostics:</strong> status <?php echo htmlspecialchars($lastRun["status"] ?? "none"); ?>, checked <?php echo (int) ($lastRun["checked_count"] ?? 0); ?>, errors <?php echo (int) ($lastRun["error_count"] ?? 0); ?>.</p>
       <?php if ($schedulerMode === "external_cron"): ?>
       <p class="mt-3 font-semibold text-slate-800">Cron / Task Scheduler</p>
       <code class="mt-2 block max-w-full overflow-x-auto rounded-lg bg-slate-900 px-3 py-2 text-xs text-white"><?php echo htmlspecialchars($cronCommand); ?></code>
-      <p class="mt-2">Run this command every <?php echo (int) ($monitoringSettings["check_interval_minutes"] ?? 5); ?> minute<?php echo (int) ($monitoringSettings["check_interval_minutes"] ?? 5) === 1 ? "" : "s"; ?>. On Windows, point Task Scheduler at PHP and pass <code>handlers/run_monitoring_queue.php batch=<?php echo (int) ($monitoringSettings["batch_size"] ?? 10); ?></code> as arguments.</p>
+      <p class="mt-2">Run this command every <?php echo $schedulerIntervalMinutes; ?> minute<?php echo $schedulerIntervalMinutes === 1 ? "" : "s"; ?>. On Windows, point Task Scheduler at PHP and pass <code>handlers/run_monitoring_queue.php batch=<?php echo $schedulerBatchSize; ?></code> as arguments.</p>
+      <?php if ($schedulerStatus["queue_stale"]): ?>
+      <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 font-medium text-amber-800">External scheduler appears inactive. Use manual run or switch to browser demo scheduler.</p>
+      <?php endif; ?>
       <?php endif; ?>
       <?php if ($latestMonitoringErrors): ?>
       <div class="mt-3 space-y-2">
