@@ -3,10 +3,31 @@ require_once __DIR__ . "/config.php";
 
 $isAuthenticated = isset($_SESSION["userId"]) && !empty($_SESSION["userId"]);
 
-// If already logged in, redirect to dashboard
+// If already logged in, redirect to the subject home
 if ($isAuthenticated) {
-    header("Location: dashboard.php");
+    header("Location: " . authenticatedHomeRedirect());
     exit;
+}
+
+$lookupQuery = trim((string) ($_GET["lookup"] ?? ""));
+$lookupResults = [];
+if ($lookupQuery !== "") {
+    $stmt = $pdo->prepare("
+        SELECT p.project_name, p.public_url, p.github_repo_name, s.subject_code, s.subject_name,
+               ps.status, ps.checked_at, ps.status_note
+        FROM projects p
+        LEFT JOIN subjects s ON s.subject_id = p.subject_id
+        LEFT JOIN project_status ps ON ps.project_id = p.project_id
+        WHERE p.project_name LIKE ?
+           OR p.public_url LIKE ?
+           OR p.github_repo_name LIKE ?
+           OR s.subject_code LIKE ?
+        ORDER BY p.project_name ASC
+        LIMIT 25
+    ");
+    $term = "%" . $lookupQuery . "%";
+    $stmt->execute([$term, $term, $term, $term]);
+    $lookupResults = $stmt->fetchAll();
 }
 ?>
 <!DOCTYPE html>
@@ -66,6 +87,7 @@ if ($isAuthenticated) {
             <a href="index.php" class="text-xl font-bold tracking-tight text-[#0050D8]">NUCLEUS</a>
             <div class="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
                 <a href="#platform" class="transition hover:text-[#0050D8]">Platform</a>
+                <a href="#status-lookup" class="transition hover:text-[#0050D8]">Status Lookup</a>
                 <a href="#magazine" class="transition hover:text-[#0050D8]">Stories</a>
                 <a href="#blog" class="transition hover:text-[#0050D8]">Blog</a>
                 <a href="login.php" class="transition hover:text-[#0050D8]">Login</a>
@@ -90,6 +112,44 @@ if ($isAuthenticated) {
     </header>
 
     <main>
+        <section id="status-lookup" class="bg-white px-5 py-16 sm:px-8 lg:px-12">
+            <div class="mx-auto max-w-5xl">
+                <div class="mb-6">
+                    <h2 class="text-3xl font-bold text-slate-800">Website Status Lookup</h2>
+                    <p class="mt-2 text-sm leading-6 text-slate-500">Visitors can search a project name, website URL, repository name, or subject code without signing in.</p>
+                </div>
+                <form method="GET" action="index.php#status-lookup" class="flex flex-col gap-3 sm:flex-row">
+                    <input type="search" name="lookup" value="<?php echo htmlspecialchars($lookupQuery); ?>" placeholder="Search website status..." class="min-h-11 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-[#0050D8] focus:ring-2 focus:ring-[#0050D8]/20">
+                    <button type="submit" class="rounded-lg bg-[#0050D8] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#003FA8]">Search</button>
+                </form>
+                <?php if ($lookupQuery !== ""): ?>
+                <div class="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <?php if (!$lookupResults): ?>
+                    <div class="p-6 text-sm text-slate-500">No websites matched your search.</div>
+                    <?php else: ?>
+                    <div class="divide-y divide-slate-100">
+                        <?php foreach ($lookupResults as $project): ?>
+                        <article class="grid gap-3 p-5 md:grid-cols-[1fr_auto] md:items-center">
+                            <div>
+                                <h3 class="font-semibold text-slate-900"><?php echo htmlspecialchars($project["project_name"]); ?></h3>
+                                <p class="mt-1 text-sm text-slate-500"><?php echo htmlspecialchars(($project["subject_code"] ?? "No subject") . " - " . ($project["subject_name"] ?? "Unassigned")); ?></p>
+                                <?php if (!empty($project["public_url"])): ?>
+                                <a href="<?php echo htmlspecialchars($project["public_url"]); ?>" target="_blank" rel="noopener noreferrer" class="mt-1 block max-w-xl truncate text-sm font-medium text-[#0050D8]"><?php echo htmlspecialchars($project["public_url"]); ?></a>
+                                <?php endif; ?>
+                            </div>
+                            <div class="text-left md:text-right">
+                                <span class="inline-flex rounded-full px-3 py-1 text-sm font-semibold status-<?php echo htmlspecialchars($project["status"] ?: "unknown"); ?>"><?php echo htmlspecialchars(ucfirst($project["status"] ?: "Unknown")); ?></span>
+                                <p class="mt-2 text-xs text-slate-500">Checked <?php echo htmlspecialchars(formatNucleusDateTime($project["checked_at"])); ?></p>
+                            </div>
+                        </article>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+        </section>
+
         <section id="platform" class="bg-white px-5 py-20 sm:px-8 lg:px-12">
             <div class="mx-auto max-w-7xl">
                 <div class="max-w-3xl">
@@ -210,6 +270,7 @@ if ($isAuthenticated) {
             <a href="index.php" class="font-bold tracking-tight text-[#0050D8]">NUCLEUS</a>
             <div class="flex flex-wrap items-center justify-center gap-5">
                 <a href="#platform" class="hover:text-[#0050D8]">Platform</a>
+                <a href="#status-lookup" class="hover:text-[#0050D8]">Status Lookup</a>
                 <a href="#magazine" class="hover:text-[#0050D8]">Stories</a>
                 <a href="#blog" class="hover:text-[#0050D8]">Blog</a>
                 <a href="login.php" class="hover:text-[#0050D8]">Login</a>
@@ -240,5 +301,13 @@ if ($isAuthenticated) {
             });
         })();
     </script>
+    <style>
+        .status-initializing { background:#e0f2fe; color:#075985; }
+        .status-building { background:#fef3c7; color:#92400e; }
+        .status-deployed { background:#d1fae5; color:#065f46; }
+        .status-warning { background:#ffedd5; color:#9a3412; }
+        .status-error { background:#fee2e2; color:#991b1b; }
+        .status-unknown { background:#f1f5f9; color:#475569; }
+    </style>
 </body>
 </html>

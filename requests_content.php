@@ -35,11 +35,15 @@ function ensureProjectRequestsTable(PDO $pdo): void {
 
 function canReviewProjectRequest(RoleManager $roleManager, int $subjectId): bool {
     $role = $_SESSION["role"] ?? "visitor";
-    if ($role === "admin") {
+    if (in_array($role, ["admin", "superadmin"], true)) {
         return true;
     }
 
     return $role === "handler" && $roleManager->canAccessSubject($_SESSION["userId"], $subjectId);
+}
+
+function canReviewSubjectJoinRequest(RoleManager $roleManager, int $subjectId): bool {
+    return canReviewProjectRequest($roleManager, $subjectId);
 }
 
 ensureProjectRequestsTable($pdo);
@@ -217,6 +221,68 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt->execute([$_SESSION["userId"], $requestId]);
             logActivity("project_request_rejected", "Rejected {$request["requesterName"]}'s website request for {$request["subject_code"]}");
             $success = "Website request rejected.";
+        } elseif ($action === "approve_subject_join_request") {
+            $requestId = isset($_POST["join_request_id"]) && is_numeric($_POST["join_request_id"]) ? (int) $_POST["join_request_id"] : null;
+            if (!$requestId) {
+                throw new Exception("Invalid subject join request.");
+            }
+
+            $stmt = $pdo->prepare("
+                SELECT sjr.*, s.subject_code, requester.fullName AS requesterName
+                FROM subject_join_requests sjr
+                JOIN subjects s ON s.subject_id = sjr.subject_id
+                JOIN users requester ON requester.userId = sjr.requested_by
+                WHERE sjr.join_request_id = ? AND sjr.status = 'pending'
+            ");
+            $stmt->execute([$requestId]);
+            $request = $stmt->fetch();
+            if (!$request) {
+                throw new Exception("Subject join request is no longer pending.");
+            }
+            if (!canReviewSubjectJoinRequest($roleManager, (int) $request["subject_id"])) {
+                throw new Exception("You do not have permission to approve this subject join request.");
+            }
+
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare("
+                INSERT INTO subject_members (subject_id, userId, access_level, added_by)
+                VALUES (?, ?, 'contributor', ?)
+                ON DUPLICATE KEY UPDATE access_level = VALUES(access_level), added_by = VALUES(added_by)
+            ");
+            $stmt->execute([(int) $request["subject_id"], (int) $request["requested_by"], $_SESSION["userId"]]);
+
+            $stmt = $pdo->prepare("UPDATE subject_join_requests SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE join_request_id = ?");
+            $stmt->execute([$_SESSION["userId"], $requestId]);
+            $pdo->commit();
+
+            logActivity("subject_join_approved", "Approved {$request["requesterName"]}'s request to join {$request["subject_code"]}");
+            $success = "Subject join request approved.";
+        } elseif ($action === "reject_subject_join_request") {
+            $requestId = isset($_POST["join_request_id"]) && is_numeric($_POST["join_request_id"]) ? (int) $_POST["join_request_id"] : null;
+            if (!$requestId) {
+                throw new Exception("Invalid subject join request.");
+            }
+
+            $stmt = $pdo->prepare("
+                SELECT sjr.*, s.subject_code, requester.fullName AS requesterName
+                FROM subject_join_requests sjr
+                JOIN subjects s ON s.subject_id = sjr.subject_id
+                JOIN users requester ON requester.userId = sjr.requested_by
+                WHERE sjr.join_request_id = ? AND sjr.status = 'pending'
+            ");
+            $stmt->execute([$requestId]);
+            $request = $stmt->fetch();
+            if (!$request) {
+                throw new Exception("Subject join request is no longer pending.");
+            }
+            if (!canReviewSubjectJoinRequest($roleManager, (int) $request["subject_id"])) {
+                throw new Exception("You do not have permission to reject this subject join request.");
+            }
+
+            $stmt = $pdo->prepare("UPDATE subject_join_requests SET status = 'rejected', reviewed_by = ?, reviewed_at = NOW() WHERE join_request_id = ?");
+            $stmt->execute([$_SESSION["userId"], $requestId]);
+            logActivity("subject_join_rejected", "Rejected {$request["requesterName"]}'s request to join {$request["subject_code"]}");
+            $success = "Subject join request rejected.";
         } elseif ($action === "approve_request" && hasPermission("manage_requests")) {
             $requestId = isset($_POST["request_id"]) && is_numeric($_POST["request_id"]) ? (int) $_POST["request_id"] : null;
             if (!$requestId) {
@@ -311,9 +377,9 @@ if (hasPermission("manage_requests")) {
     $subjectRequests = $stmt->fetchAll();
 }
 
-$canReviewProjectRequests = in_array($_SESSION["role"] ?? "", ["admin", "handler"], true);
+$canReviewProjectRequests = in_array($_SESSION["role"] ?? "", ["superadmin", "admin", "handler"], true);
 if ($canReviewProjectRequests) {
-    if (($_SESSION["role"] ?? "") === "admin") {
+    if (in_array($_SESSION["role"] ?? "", ["superadmin", "admin"], true)) {
         $stmt = $pdo->query("
             SELECT pr.*, s.subject_code, s.subject_name, requester.fullName AS requesterName, reviewer.fullName AS reviewerName
             FROM project_requests pr
@@ -352,7 +418,50 @@ if ($canReviewProjectRequests) {
     $projectRequests = $stmt->fetchAll();
 }
 
-$subjects = $pdo->query("SELECT subject_id, subject_code, subject_name FROM subjects ORDER BY subject_code ASC")->fetchAll();
+$canReviewSubjectJoinRequests = $canReviewProjectRequests;
+if ($canReviewSubjectJoinRequests) {
+    if (in_array($_SESSION["role"] ?? "", ["superadmin", "admin"], true)) {
+        $stmt = $pdo->query("
+            SELECT sjr.*, s.subject_code, s.subject_name, requester.fullName AS requesterName, reviewer.fullName AS reviewerName
+            FROM subject_join_requests sjr
+            JOIN subjects s ON s.subject_id = sjr.subject_id
+            JOIN users requester ON requester.userId = sjr.requested_by
+            LEFT JOIN users reviewer ON reviewer.userId = sjr.reviewed_by
+            ORDER BY FIELD(sjr.status, 'pending', 'approved', 'rejected'), sjr.created_at DESC
+            LIMIT 250
+        ");
+        $subjectJoinRequests = $stmt->fetchAll();
+    } else {
+        $stmt = $pdo->prepare("
+            SELECT sjr.*, s.subject_code, s.subject_name, requester.fullName AS requesterName, reviewer.fullName AS reviewerName
+            FROM subject_join_requests sjr
+            JOIN subjects s ON s.subject_id = sjr.subject_id
+            JOIN subject_members sm ON sm.subject_id = sjr.subject_id AND sm.userId = ?
+            JOIN users requester ON requester.userId = sjr.requested_by
+            LEFT JOIN users reviewer ON reviewer.userId = sjr.reviewed_by
+            ORDER BY FIELD(sjr.status, 'pending', 'approved', 'rejected'), sjr.created_at DESC
+            LIMIT 250
+        ");
+        $stmt->execute([$_SESSION["userId"]]);
+        $subjectJoinRequests = $stmt->fetchAll();
+    }
+} else {
+    $stmt = $pdo->prepare("
+        SELECT sjr.*, s.subject_code, s.subject_name, reviewer.fullName AS reviewerName
+        FROM subject_join_requests sjr
+        JOIN subjects s ON s.subject_id = sjr.subject_id
+        LEFT JOIN users reviewer ON reviewer.userId = sjr.reviewed_by
+        WHERE sjr.requested_by = ?
+        ORDER BY sjr.created_at DESC
+        LIMIT 250
+    ");
+    $stmt->execute([$_SESSION["userId"]]);
+    $subjectJoinRequests = $stmt->fetchAll();
+}
+
+$subjects = in_array($_SESSION["role"] ?? "", ["superadmin", "admin"], true)
+    ? $pdo->query("SELECT subject_id, subject_code, subject_name FROM subjects ORDER BY subject_code ASC")->fetchAll()
+    : $roleManager->getUserSubjects($_SESSION["userId"]);
 ?>
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
   <div>
@@ -483,6 +592,68 @@ $subjects = $pdo->query("SELECT subject_id, subject_code, subject_name FROM subj
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION["csrf_token"]; ?>">
                 <input type="hidden" name="request_action" value="reject_project_request">
                 <input type="hidden" name="request_id" value="<?php echo $request["request_id"]; ?>">
+                <button type="submit" class="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600">Reject</button>
+              </form>
+            </div>
+            <?php else: ?>
+            <span class="text-sm text-slate-500"><?php echo htmlspecialchars($request["reviewerName"] ?? "Reviewed"); ?></span>
+            <?php endif; ?>
+          </td>
+          <?php endif; ?>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<section class="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+  <div class="border-b border-slate-100 p-6">
+    <h2 class="text-lg font-semibold text-slate-800"><?php echo $canReviewSubjectJoinRequests ? "Subject Join Requests" : "My Subject Join Requests"; ?></h2>
+    <div class="mt-4">
+      <label for="subjectJoinRequestSearch" class="mb-2 block text-sm font-medium text-slate-700">Search Subject Join Requests</label>
+      <input id="subjectJoinRequestSearch" type="search" data-table-search="#subjectJoinRequestsTable" placeholder="Search by subject, requester, status, message, or date" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20">
+    </div>
+  </div>
+  <div class="overflow-x-auto lg:overflow-x-visible">
+    <div class="nucleus-table-inner px-3 sm:px-4">
+    <table id="subjectJoinRequestsTable" class="data-table w-full" data-page-length="10" data-order-column="4" data-order-direction="desc" data-empty="No subject join requests found">
+      <thead class="bg-slate-50">
+        <tr class="text-left text-sm text-slate-600 border-b border-slate-200">
+          <th class="pb-3 pl-6 pr-4 font-semibold">Subject</th>
+          <?php if ($canReviewSubjectJoinRequests): ?><th class="pb-3 pr-4 font-semibold">Requested By</th><?php endif; ?>
+          <th class="pb-3 pr-4 font-semibold">Status</th>
+          <th class="pb-3 pr-4 font-semibold">Message</th>
+          <th class="pb-3 pr-4 font-semibold">Requested</th>
+          <?php if ($canReviewSubjectJoinRequests): ?><th class="no-sort pb-3 pr-6 font-semibold">Action</th><?php endif; ?>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        <?php foreach ($subjectJoinRequests as $request): ?>
+        <tr class="hover:bg-slate-50">
+          <td class="py-4 pl-6 pr-4">
+            <div class="font-medium text-slate-800"><?php echo htmlspecialchars($request["subject_code"]); ?></div>
+            <div class="text-sm text-slate-500"><?php echo htmlspecialchars($request["subject_name"]); ?></div>
+          </td>
+          <?php if ($canReviewSubjectJoinRequests): ?><td class="py-4 pr-4 text-sm text-slate-600"><?php echo htmlspecialchars($request["requesterName"]); ?></td><?php endif; ?>
+          <td class="py-4 pr-4"><span class="rounded px-2 py-1 text-sm font-medium status-<?php echo htmlspecialchars($request["status"]); ?>"><?php echo ucfirst($request["status"]); ?></span></td>
+          <td class="py-4 pr-4 text-sm text-slate-600"><?php echo htmlspecialchars($request["message"] ?? ""); ?></td>
+          <td class="py-4 pr-4 text-sm text-slate-500"><?php echo htmlspecialchars(formatNucleusDateTime($request["created_at"])); ?></td>
+          <?php if ($canReviewSubjectJoinRequests): ?>
+          <td class="py-4 pr-6">
+            <?php if ($request["status"] === "pending" && canReviewSubjectJoinRequest($roleManager, (int) $request["subject_id"])): ?>
+            <div class="flex flex-wrap gap-2">
+              <form method="POST" action="get_content.php?tab=requests">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION["csrf_token"]; ?>">
+                <input type="hidden" name="request_action" value="approve_subject_join_request">
+                <input type="hidden" name="join_request_id" value="<?php echo $request["join_request_id"]; ?>">
+                <button type="submit" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white">Approve</button>
+              </form>
+              <form method="POST" action="get_content.php?tab=requests">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION["csrf_token"]; ?>">
+                <input type="hidden" name="request_action" value="reject_subject_join_request">
+                <input type="hidden" name="join_request_id" value="<?php echo $request["join_request_id"]; ?>">
                 <button type="submit" class="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600">Reject</button>
               </form>
             </div>

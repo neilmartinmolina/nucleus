@@ -169,7 +169,7 @@ $handlers = $pdo->query("
     </div>
     <div class="flex flex-col-reverse gap-3 md:col-span-2 sm:flex-row sm:justify-end">
       <a href="dashboard.php?page=folders" class="rounded-lg border border-slate-200 px-4 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</a>
-      <button type="submit" class="rounded-lg bg-cta px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">Create Subject</button>
+      <button type="submit" class="rounded-lg bg-[#0050D8] px-4 py-2 text-sm font-medium text-white hover:bg-[#003FA8]">Create Subject</button>
     </div>
   </form>
 </div>

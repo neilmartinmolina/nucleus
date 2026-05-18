@@ -2,7 +2,7 @@
 require_once __DIR__ . "/handlers/signup_handler.php";
 
 if (isAuthenticated()) {
-    header("Location: dashboard.php");
+    header("Location: " . authenticatedHomeRedirect());
     exit;
 }
 
@@ -70,7 +70,7 @@ generateCSRFToken();
                                     <p class="text-xs font-semibold uppercase text-[#0050D8]">Account Setup</p>
                                     <h3 class="mt-1 text-lg font-bold">Ready for review</h3>
                                 </div>
-                                <span class="rounded-full bg-[#E8F5FF] px-3 py-1 text-xs font-semibold text-[#0050D8]">Visitor</span>
+                                <span class="rounded-full bg-[#E8F5FF] px-3 py-1 text-xs font-semibold text-[#0050D8]">Member</span>
                             </div>
                             <div class="space-y-3">
                                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -78,7 +78,7 @@ generateCSRFToken();
                                         <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#0050D8] text-sm font-bold text-white">JD</div>
                                         <div>
                                             <p class="text-sm font-semibold">Juan Dela Cruz</p>
-                                            <p class="text-xs text-slate-500">Visitor account</p>
+                                            <p class="text-xs text-slate-500">Member account</p>
                                         </div>
                                     </div>
                                 </div>

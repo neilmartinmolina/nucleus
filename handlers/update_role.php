@@ -25,7 +25,7 @@ if (!$userId || !$role) {
     exit;
 }
 
-$validRoles = ["admin", "handler", "visitor"];
+$validRoles = ["superadmin", "admin", "handler", "member", "visitor"];
 if (!in_array($role, $validRoles)) {
     echo json_encode(["success" => false, "message" => "Invalid role"]);
     exit;

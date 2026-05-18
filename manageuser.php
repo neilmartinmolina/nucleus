@@ -27,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["csrf_token"])) {
 
     if (!$targetUserId || $fullName === "" || $role === "") {
         $error = "Full name and role are required";
-    } elseif (!in_array($role, ["admin", "handler", "visitor"], true)) {
+    } elseif (!in_array($role, ["superadmin", "admin", "handler", "member", "visitor"], true)) {
         $error = "Invalid role selected";
     } else {
         try {
@@ -111,7 +111,7 @@ if (!$editUser) {
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Role *</label>
       <select name="role" required class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-cta focus:ring-2 focus:ring-cta">
-        <?php foreach (["visitor" => "Visitor", "handler" => "Handler", "admin" => "Admin"] as $value => $label): ?>
+        <?php foreach (["member" => "Member", "handler" => "Handler", "admin" => "Admin", "superadmin" => "Superadmin", "visitor" => "Visitor"] as $value => $label): ?>
         <option value="<?php echo $value; ?>" <?php echo $editUser["role"] === $value ? "selected" : ""; ?>><?php echo $label; ?></option>
         <?php endforeach; ?>
       </select>

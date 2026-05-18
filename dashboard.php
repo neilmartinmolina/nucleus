@@ -38,6 +38,7 @@ $dashboardPayload = [
         ["selector" => "#projectsTable", "order" => [[5, "desc"]], "disabledTargets" => [7], "placeholder" => "Search projects..."],
         ["selector" => "#usersTable", "order" => [[0, "asc"]], "disabledTargets" => [4], "placeholder" => "Search users..."],
         ["selector" => "#websiteRequestsTable", "order" => [], "disabledTargets" => [], "placeholder" => "Search website requests..."],
+        ["selector" => "#subjectJoinRequestsTable", "order" => [[4, "desc"]], "disabledTargets" => [], "placeholder" => "Search subject join requests..."],
         ["selector" => "#subjectRequestsTable", "order" => [[4, "desc"]], "disabledTargets" => [], "placeholder" => "Search subject requests..."],
         ["selector" => "#activityLogsTable", "order" => [[5, "desc"]], "disabledTargets" => [], "placeholder" => "Search logs..."],
         ["selector" => "#projectChecksTable", "order" => [[0, "desc"]], "disabledTargets" => [], "placeholder" => "Search checks..."],
@@ -69,6 +70,46 @@ $dashboardPayload = [
             width: 4px;
             background-color: #043873;
             border-radius: 0 4px 4px 0;
+        }
+        .nav-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            display: inline-block;
+            flex: 0 0 auto;
+            margin-right: 0.75rem;
+            vertical-align: -0.25rem;
+        }
+        .nav-group.is-open > .nav-submenu {
+            display: block;
+        }
+        .nav-group.is-open > .nav-item {
+            background-color: rgba(4, 56, 115, 0.06);
+            color: #043873;
+            font-weight: 600;
+        }
+        .nav-submenu {
+            display: none;
+            margin: 0.25rem 0 0.25rem 1.75rem;
+            padding-left: 0.75rem;
+            border-left: 1px solid #e2e8f0;
+        }
+        .nav-subitem {
+            display: block;
+            margin-top: 0.25rem;
+            padding: 0.55rem 0.75rem;
+            border-radius: 0.5rem;
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: background-color 150ms ease, color 150ms ease;
+        }
+        .nav-subitem:hover,
+        .nav-subitem.active {
+            background-color: rgba(4, 56, 115, 0.1);
+            color: #043873;
+        }
+        .nav-subitem.active::before {
+            display: none;
         }
         .dt-container {
             color: #334155;
@@ -332,24 +373,38 @@ $dashboardPayload = [
             <!-- Nav Links -->
             <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
                 <?php if ($navFeatures["dashboard"] || isAdminLike()): ?>
-                <a href="?page=dashboard" class="nav-item active block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["dashboard"] ? "" : "opacity-60"; ?>" data-page="dashboard">
+                <a href="?page=dashboard" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["dashboard"] ? "" : "opacity-60"; ?>" data-page="dashboard">
                     <svg class="w-5 h-5 inline-block mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                     Dashboard
                 </a>
                 <?php endif; ?>
                 <?php if ($navFeatures["folders"] || isAdminLike()): ?>
-                <a href="?page=folders" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["folders"] ? "" : "opacity-60"; ?>" data-page="folders">
-                    <svg class="w-5 h-5 inline-block mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-                    Subjects
-                </a>
+                <div class="nav-group" data-nav-group-pages="folders,create-subject,view-folder">
+                    <a href="?page=folders" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["folders"] ? "" : "opacity-60"; ?>" data-page="folders">
+                        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6.5A2.5 2.5 0 016.5 4H10l2 2h5.5A2.5 2.5 0 0120 8.5v8A2.5 2.5 0 0117.5 19h-11A2.5 2.5 0 014 16.5v-10z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 9h16"></path></svg>
+                        Subjects
+                    </a>
+                    <?php if (hasPermission("manage_groups")): ?>
+                    <div class="nav-submenu">
+                        <a href="?page=create-subject" class="nav-item nav-subitem" data-page="create-subject">Add Subject</a>
+                    </div>
+                    <?php endif; ?>
+                </div>
                 <?php endif; ?>
                 <?php if ($navFeatures["websites"] || isAdminLike()): ?>
-                <a href="?page=websites" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["websites"] ? "" : "opacity-60"; ?>" data-page="websites">
-                    <svg class="w-5 h-5 inline-block mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-                    Projects
-                </a>
+                <div class="nav-group" data-nav-group-pages="websites,create-project,project-form,project-details">
+                    <a href="?page=websites" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["websites"] ? "" : "opacity-60"; ?>" data-page="websites">
+                        <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                        Projects
+                    </a>
+                    <?php if (hasPermission("create_project")): ?>
+                    <div class="nav-submenu">
+                        <a href="?page=create-project" class="nav-item nav-subitem" data-page="create-project">Add Project</a>
+                    </div>
+                    <?php endif; ?>
+                </div>
                 <?php endif; ?>
-                <?php if (($navFeatures["files"] && in_array($currentRole, ["admin", "handler"], true)) || isAdminLike()): ?>
+                <?php if (($navFeatures["files"] && canManageFiles()) || isAdminLike()): ?>
                 <a href="?page=files" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["files"] ? "" : "opacity-60"; ?>" data-page="files">
                     <svg class="w-5 h-5 inline-block mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"></path></svg>
                     Files
@@ -373,7 +428,7 @@ $dashboardPayload = [
                     Settings
                 </a>
                 <?php endif; ?>
-                <?php if (($navFeatures["alerts"] && in_array($currentRole, ["admin", "handler"], true)) || isAdminLike()): ?>
+                <?php if (($navFeatures["alerts"] && canManageFiles()) || isAdminLike()): ?>
                 <a href="?page=alerts" class="nav-item block px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-navy transition relative <?php echo $navFeatures["alerts"] ? "" : "opacity-60"; ?>" data-page="alerts">
                     <svg class="w-5 h-5 inline-block mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path></svg>
                     Alerts
@@ -442,6 +497,7 @@ $dashboardPayload = [
         const contentEl = document.getElementById('pageContent');
         const titleEl = document.getElementById('pageTitle');
         const navLinks = document.querySelectorAll('.nav-item');
+        const navGroups = document.querySelectorAll('[data-nav-group-pages]');
         const openNavButton = document.querySelector('[data-mobile-nav-open]');
         const closeNavTriggers = document.querySelectorAll('[data-mobile-nav-close]');
 
@@ -1009,18 +1065,26 @@ $dashboardPayload = [
 
         function updateActiveNav(page) {
             const navPage = {
-                'create-subject': 'folders',
-                'create-project': 'websites',
-                'project-form': 'websites',
+                'project-form': 'create-project',
                 'project-details': 'websites',
                 'manage-user': 'usermanagement',
                 'create-user': 'usermanagement',
                 'view-folder': 'folders'
             }[page] || page;
             navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.dataset.page === navPage) link.classList.add('active');
+                const active = link.dataset.page === navPage;
+                link.classList.toggle('active', active);
+                if (active) {
+                    link.setAttribute('aria-current', 'page');
+                } else {
+                    link.removeAttribute('aria-current');
+                }
             });
+            navGroups.forEach(group => {
+                const pages = (group.dataset.navGroupPages || '').split(',');
+                group.classList.toggle('is-open', pages.includes(page) || pages.includes(navPage));
+            });
+            document.body.dataset.currentDashboardPage = navPage;
             closeMobileNav();
         }
 

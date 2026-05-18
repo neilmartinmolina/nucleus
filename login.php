@@ -3,7 +3,7 @@ require_once __DIR__ . "/includes/core.php";
 
 // Redirect if already logged in
 if (isAuthenticated()) {
-    header("Location: dashboard.php");
+    header("Location: " . authenticatedHomeRedirect());
     exit;
 }
 
@@ -46,6 +46,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $user = $stmt->fetch();
                 
                 if ($user && Security::verifyPassword($password, $user["passwordHash"])) {
+                    if ((int) ($user["isVerified"] ?? 0) !== 1) {
+                        $error = "Please verify your email address before logging in.";
+                    } else {
                     // Set session data
                     $_SESSION["userId"] = $user["userId"];
                     $_SESSION["fullName"] = $user["fullName"];
@@ -60,8 +63,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     // Regenerate session ID
                     session_regenerate_id(true);
                     
-                    header("Location: dashboard.php");
+                    header("Location: " . homeRedirectForRole($user["role"]));
                     exit;
+                    }
                 } else {
                     // Log failed login
                     $stmt = $pdo->prepare("INSERT INTO login_attempts (username, ip_address, success, created_at) VALUES (?, ?, 0, NOW())");

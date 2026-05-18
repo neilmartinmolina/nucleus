@@ -238,6 +238,174 @@ function ensureFeatureFlagsSchema(PDO $pdo): void {
     }
 }
 
+function ensureRoleCatalogSchema(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+
+    try {
+        $pdo->exec("ALTER TABLE roles MODIFY role_name ENUM('superadmin', 'admin', 'handler', 'member', 'visitor') NOT NULL");
+        $stmt = $pdo->prepare("
+            INSERT IGNORE INTO roles (role_name, description)
+            VALUES (?, ?)
+        ");
+        $stmt->execute(["superadmin", "Owns all system settings, users, and emergency controls"]);
+        $stmt->execute(["member", "Can join subjects and submit website requests"]);
+        $stmt->execute(["visitor", "Public visitor without an account; can look up non-sensitive website status"]);
+        $pdo->exec("
+            UPDATE roles
+            SET description = 'Public visitor without an account; can look up non-sensitive website status'
+            WHERE role_name = 'visitor'
+        ");
+    } catch (Throwable $e) {
+        error_log("Role catalog schema check failed: " . $e->getMessage());
+    }
+}
+
+function ensureSubjectJoinRequestsSchema(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+
+    try {
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS subject_join_requests (
+                join_request_id INT PRIMARY KEY AUTO_INCREMENT,
+                subject_id INT NOT NULL,
+                requested_by INT NOT NULL,
+                message TEXT NULL,
+                status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+                reviewed_by INT NULL,
+                reviewed_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE,
+                FOREIGN KEY (requested_by) REFERENCES users(userId) ON DELETE CASCADE,
+                FOREIGN KEY (reviewed_by) REFERENCES users(userId) ON DELETE SET NULL,
+                UNIQUE KEY unique_pending_subject_join (subject_id, requested_by, status),
+                INDEX idx_subject_join_requests_status (status),
+                INDEX idx_subject_join_requests_subject_status (subject_id, status),
+                INDEX idx_subject_join_requests_requested_by (requested_by)
+            )
+        ");
+    } catch (Throwable $e) {
+        error_log("Subject join requests schema check failed: " . $e->getMessage());
+    }
+}
+
+function ensureSubjectArchiveColumn(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'subjects'
+              AND COLUMN_NAME = 'archived_at'
+        ");
+        $stmt->execute();
+        if ((int) $stmt->fetchColumn() === 0) {
+            $pdo->exec("ALTER TABLE subjects ADD COLUMN archived_at TIMESTAMP NULL AFTER updated_at");
+        }
+    } catch (Throwable $e) {
+        error_log("Subject archive column check failed: " . $e->getMessage());
+    }
+}
+
+function ensureUserProfileColumns(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+
+    $columns = [
+        "phone" => "VARCHAR(50) NULL",
+        "department" => "VARCHAR(255) NULL",
+        "bio" => "TEXT NULL",
+    ];
+
+    foreach ($columns as $column => $definition) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'users'
+                  AND COLUMN_NAME = ?
+            ");
+            $stmt->execute([$column]);
+            if ((int) $stmt->fetchColumn() === 0) {
+                $pdo->exec("ALTER TABLE users ADD COLUMN {$column} {$definition}");
+            }
+        } catch (Throwable $e) {
+            error_log("User profile column {$column} check failed: " . $e->getMessage());
+        }
+    }
+}
+
+function ensureEmailVerificationColumns(PDO $pdo): void {
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+    $checked = true;
+
+    $columns = [
+        "isVerified" => "TINYINT(1) NOT NULL DEFAULT 0",
+        "email_verified_at" => "TIMESTAMP NULL",
+        "email_verification_token" => "VARCHAR(255) NULL",
+        "email_verification_expires_at" => "TIMESTAMP NULL",
+        "email_verification_sent_at" => "TIMESTAMP NULL",
+    ];
+
+    foreach ($columns as $column => $definition) {
+        try {
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'users'
+                  AND COLUMN_NAME = ?
+            ");
+            $stmt->execute([$column]);
+            if ((int) $stmt->fetchColumn() === 0) {
+                $pdo->exec("ALTER TABLE users ADD COLUMN {$column} {$definition}");
+            }
+        } catch (Throwable $e) {
+            error_log("Email verification column {$column} check failed: " . $e->getMessage());
+        }
+    }
+
+    try {
+        $pdo->exec("
+            UPDATE users
+            SET isVerified = 1,
+                email_verified_at = COALESCE(email_verified_at, created_at, NOW())
+            WHERE email_verified_at IS NULL
+              AND COALESCE(isVerified, 0) = 0
+              AND email_verification_token IS NULL
+        ");
+        $pdo->exec("
+            UPDATE users
+            SET isVerified = 1
+            WHERE email_verified_at IS NOT NULL
+              AND COALESCE(isVerified, 0) = 0
+        ");
+    } catch (Throwable $e) {
+        error_log("Email verification backfill failed: " . $e->getMessage());
+    }
+}
+
 function resourceProjectUsageBytes(PDO $pdo, int $projectId): int {
     $stmt = $pdo->prepare("SELECT COALESCE(SUM(file_size), 0) FROM resource_files WHERE project_id = ? AND is_deleted = 0");
     $stmt->execute([$projectId]);
@@ -252,6 +420,38 @@ function isAdminLike(): bool {
     global $pdo;
     $roleManager = new RoleManager($pdo);
     return in_array($roleManager->getUserRole($_SESSION["userId"] ?? null), ["admin", "superadmin"], true);
+}
+
+function canManageFiles(): bool {
+    if (!isAuthenticated()) {
+        return false;
+    }
+
+    global $pdo;
+    $roleManager = new RoleManager($pdo);
+    return $roleManager->canManageFiles($_SESSION["userId"] ?? null);
+}
+
+function homeRedirectForRole(?string $role): string {
+    return in_array($role, ["superadmin", "admin", "handler"], true) ? "dashboard.php" : "home.php";
+}
+
+function authenticatedHomeRedirect(): string {
+    if (!isAuthenticated()) {
+        return "login.php";
+    }
+
+    $role = $_SESSION["role"] ?? null;
+    if (!$role) {
+        global $pdo;
+        $roleManager = new RoleManager($pdo);
+        $role = $roleManager->getUserRole($_SESSION["userId"] ?? null);
+        if ($role) {
+            $_SESSION["role"] = $role;
+        }
+    }
+
+    return homeRedirectForRole($role);
 }
 
 function getFeatureFlag(string $featureKey): ?array {
@@ -368,6 +568,11 @@ if (!defined("NUCLEUS_SKIP_SESSION_BOOTSTRAP") && !defined("NUCLEUS_SKIP_DIRECT_
 ensureProjectSavedAtColumn($pdo);
 ensureResourceFilesSchema($pdo);
 ensureFeatureFlagsSchema($pdo);
+ensureRoleCatalogSchema($pdo);
+ensureSubjectJoinRequestsSchema($pdo);
+ensureSubjectArchiveColumn($pdo);
+ensureUserProfileColumns($pdo);
+ensureEmailVerificationColumns($pdo);
 
 if (!defined("NUCLEUS_CORE_LOADED")) {
     define("NUCLEUS_CORE_LOADED", true);

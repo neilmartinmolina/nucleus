@@ -5,8 +5,8 @@ ensureDriveStorageSchema($pdo);
 
 $role = $_SESSION["role"] ?? (new RoleManager($pdo))->getUserRole($_SESSION["userId"] ?? null);
 $userId = (int) ($_SESSION["userId"] ?? 0);
-if (!in_array($role, ["admin", "handler"], true)) {
-    echo "<div class=\"rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700\">Drive Storage is restricted to administrators and handlers.</div>";
+if (!canManageFiles()) {
+    echo "<div class=\"rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700\">Drive Storage is restricted to file managers.</div>";
     return;
 }
 $folderId = isset($_GET["folder_id"]) && is_numeric($_GET["folder_id"]) ? (int) $_GET["folder_id"] : null;

@@ -10,7 +10,7 @@ USE nucleus;
 
 CREATE TABLE IF NOT EXISTS roles (
     role_id INT PRIMARY KEY AUTO_INCREMENT,
-    role_name ENUM('admin', 'handler', 'visitor') NOT NULL UNIQUE,
+    role_name ENUM('superadmin', 'admin', 'handler', 'member', 'visitor') NOT NULL UNIQUE,
     description VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -21,6 +21,14 @@ CREATE TABLE IF NOT EXISTS users (
     passwordHash VARCHAR(255) NOT NULL,
     fullName VARCHAR(255) NOT NULL,
     email VARCHAR(255) NULL UNIQUE,
+    isVerified TINYINT(1) NOT NULL DEFAULT 1,
+    email_verified_at TIMESTAMP NULL,
+    email_verification_token VARCHAR(255) NULL,
+    email_verification_expires_at TIMESTAMP NULL,
+    email_verification_sent_at TIMESTAMP NULL,
+    phone VARCHAR(50) NULL,
+    department VARCHAR(255) NULL,
+    bio TEXT NULL,
     role_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -35,6 +43,7 @@ CREATE TABLE IF NOT EXISTS subjects (
     created_by INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    archived_at TIMESTAMP NULL,
     FOREIGN KEY (created_by) REFERENCES users(userId) ON DELETE RESTRICT
 );
 
@@ -66,6 +75,25 @@ CREATE TABLE IF NOT EXISTS subject_requests (
     FOREIGN KEY (reviewed_by) REFERENCES users(userId) ON DELETE SET NULL,
     INDEX idx_subject_requests_status (status),
     INDEX idx_subject_requests_requested_by (requested_by)
+);
+
+CREATE TABLE IF NOT EXISTS subject_join_requests (
+    join_request_id INT PRIMARY KEY AUTO_INCREMENT,
+    subject_id INT NOT NULL,
+    requested_by INT NOT NULL,
+    message TEXT NULL,
+    status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+    reviewed_by INT NULL,
+    reviewed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id) ON DELETE CASCADE,
+    FOREIGN KEY (requested_by) REFERENCES users(userId) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by) REFERENCES users(userId) ON DELETE SET NULL,
+    UNIQUE KEY unique_pending_subject_join (subject_id, requested_by, status),
+    INDEX idx_subject_join_requests_status (status),
+    INDEX idx_subject_join_requests_subject_status (subject_id, status),
+    INDEX idx_subject_join_requests_requested_by (requested_by)
 );
 
 CREATE TABLE IF NOT EXISTS project_requests (
@@ -328,9 +356,11 @@ CREATE TABLE IF NOT EXISTS error_logs (
 );
 
 INSERT IGNORE INTO roles (role_name, description) VALUES
+('superadmin', 'Owns all system settings, users, and emergency controls'),
 ('admin', 'Full visibility and system monitoring access'),
 ('handler', 'Can create and manage owned or assigned projects'),
-('visitor', 'Can view public non-sensitive project information');
+('member', 'Can join subjects and submit website requests'),
+('visitor', 'Public visitor without an account; can look up non-sensitive website status');
 
 INSERT IGNORE INTO users (username, passwordHash, fullName, email, role_id)
 SELECT 'admin', '$2y$12$Fi3OAf7w0SeOoVM9v11BgeTwuVCbzmsnTPMqaYOGd0HKvq.VY8PfW', 'System Administrator', 'admin@example.com', role_id

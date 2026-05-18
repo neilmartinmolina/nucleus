@@ -21,7 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["csrf_token"])) {
 
     if ($username === "" || $password === "" || $fullName === "" || $role === "") {
         $error = "All fields are required";
-    } elseif (!in_array($role, ["admin", "handler", "visitor"], true)) {
+    } elseif (!in_array($role, ["superadmin", "admin", "handler", "member", "visitor"], true)) {
         $error = "Invalid role selected";
     } else {
         $stmt = $pdo->prepare("SELECT userId FROM users WHERE username = ?");
@@ -76,9 +76,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["csrf_token"])) {
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Role *</label>
       <select name="role" required class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-cta focus:ring-2 focus:ring-cta">
-        <option value="visitor">Visitor</option>
+        <option value="member">Member</option>
         <option value="handler">Handler</option>
         <option value="admin">Admin</option>
+        <option value="superadmin">Superadmin</option>
+        <option value="visitor">Visitor</option>
       </select>
     </div>
     <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

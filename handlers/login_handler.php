@@ -40,6 +40,10 @@ function loginUser($username, $password) {
         $user = $stmt->fetch();
         
         if ($user && Security::verifyPassword($password, $user["passwordHash"])) {
+            if ((int) ($user["isVerified"] ?? 0) !== 1) {
+                return ['success' => false, 'message' => 'Please verify your email address before logging in.'];
+            }
+
             // Log successful login
             $stmt = $pdo->prepare("
                 INSERT INTO login_attempts (username, ip_address, created_at, success)
@@ -58,7 +62,7 @@ function loginUser($username, $password) {
             // Regenerate session ID
             session_regenerate_id(true);
             
-            return ['success' => true, 'message' => 'Login successful'];
+            return ['success' => true, 'message' => 'Login successful', 'redirect' => homeRedirectForRole($user["role"])];
         } else {
             // Log failed login attempt
             $stmt = $pdo->prepare("

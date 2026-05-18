@@ -1,75 +1,38 @@
-﻿<?php
+<?php
 require_once __DIR__ . "/includes/core.php";
 
 $roleManager = new RoleManager($pdo);
 $canRunMonitoringNow = in_array($roleManager->getUserRole($_SESSION["userId"] ?? null), ["admin", "superadmin"], true);
 [$accessWhere, $accessParams] = $roleManager->projectAccessSql("p");
 $todayWhere = $accessWhere ? $accessWhere . " AND DATE(p.last_updated_at) = CURDATE()" : " WHERE DATE(p.last_updated_at) = CURDATE()";
-$latestCheckJoin = "
-    LEFT JOIN (
-        SELECT dc1.*
-        FROM deployment_checks dc1
-        INNER JOIN (
-            SELECT project_id, MAX(id) AS latest_check_id
-            FROM deployment_checks
-            GROUP BY project_id
-        ) latest_dc ON latest_dc.latest_check_id = dc1.id
-    ) dc ON dc.project_id = p.project_id
-";
 
-$todayQuery = "
-    SELECT p.*, ps.status, ps.status_note, ps.updated_by AS updatedBy, u.fullName,
-           dc.response_time_ms, dc.status_source, dc.version AS check_version, dc.remote_updated_at,
-           dc.commit_hash, dc.checked_at AS latest_check_at,
-           ps.last_successful_check_at AS last_successful_check,
-           COALESCE(ps.consecutive_failures, 0) AS consecutive_failures
-    FROM projects p
-    LEFT JOIN project_status ps ON ps.project_id = p.project_id
-    LEFT JOIN users u ON ps.updated_by = u.userId
-    {$latestCheckJoin}
-    {$todayWhere}
-    ORDER BY p.last_updated_at DESC
-    LIMIT 50
-";
-$todayStmt = $pdo->prepare($todayQuery);
+$todayStmt = $pdo->prepare("SELECT COUNT(*) AS c FROM projects p {$todayWhere}");
 $todayStmt->execute($accessParams);
-$today = $todayStmt->fetchAll();
+$updatedToday = (int) $todayStmt->fetch()["c"];
 
-$allStmt = $pdo->prepare("
-    SELECT p.*, ps.status, ps.status_note, ps.updated_by AS updatedBy, u.fullName,
-           dc.response_time_ms, dc.status_source, dc.version AS check_version, dc.remote_updated_at,
-           dc.commit_hash, dc.checked_at AS latest_check_at,
-           ps.last_successful_check_at AS last_successful_check,
-           COALESCE(ps.consecutive_failures, 0) AS consecutive_failures
-    FROM projects p
-    LEFT JOIN project_status ps ON ps.project_id = p.project_id
-    LEFT JOIN users u ON ps.updated_by = u.userId
-    {$latestCheckJoin}
-    {$accessWhere}
-    ORDER BY p.project_name ASC
-    LIMIT 25
-");
-$allStmt->execute($accessParams);
-$all = $allStmt->fetchAll();
-
-$countStmt = $pdo->prepare("SELECT COUNT(*) as c FROM projects p {$accessWhere}");
+$countStmt = $pdo->prepare("SELECT COUNT(*) AS c FROM projects p {$accessWhere}");
 $countStmt->execute($accessParams);
-$totalWebsites = $countStmt->fetch()["c"];
-$totalFolders = $pdo->query("SELECT COUNT(*) as c FROM subjects")->fetch()["c"];
-$totalUsers = $pdo->query("SELECT COUNT(*) as c FROM users")->fetch()["c"];
-$updatedToday = count($today);
+$totalWebsites = (int) $countStmt->fetch()["c"];
+$totalFolders = (int) $pdo->query("SELECT COUNT(*) AS c FROM subjects")->fetch()["c"];
+$totalUsers = (int) $pdo->query("SELECT COUNT(*) AS c FROM users")->fetch()["c"];
+
 $monitoringSettings = monitoringSettings($pdo);
 $schedulerMode = monitoringNormalizeSchedulerMode((string) ($monitoringSettings["scheduler_mode"] ?? ""));
 $schedulerModes = monitoringSchedulerModes();
 $lastMonitoringRun = monitoringLastRun($pdo);
 $monitoringLockState = monitoringLockState();
-$latestErrorRuns = $pdo->query("
-    SELECT id, status, message, error_count, started_at
-    FROM monitoring_runs
-    WHERE status = 'failed' OR error_count > 0
-    ORDER BY started_at DESC, id DESC
-    LIMIT 3
-")->fetchAll();
+$monitoringIntervalMinutes = max(1, (int) ($monitoringSettings["check_interval_minutes"] ?? 5));
+$lastMonitoringRunStartedMs = $lastMonitoringRun ? (int) strtotime($lastMonitoringRun["started_at"]) * 1000 : 0;
+$monitoringStaleAfter = max(1, (int) ($monitoringSettings["stale_after_minutes"] ?? 10));
+$monitoringIsBroken = false;
+
+if (!$lastMonitoringRun) {
+    $monitoringIsBroken = true;
+} else {
+    $monitoringRunAgeMinutes = max(0, (int) floor((time() - strtotime($lastMonitoringRun["started_at"])) / 60));
+    $monitoringIsBroken = (($lastMonitoringRun["status"] ?? "") === "failed") || $monitoringRunAgeMinutes > $monitoringStaleAfter;
+}
+
 $openAlertCounts = $pdo->query("
     SELECT severity, COUNT(*) AS count
     FROM monitoring_alerts
@@ -80,68 +43,171 @@ $openAlertTotal = 0;
 foreach ($openAlertCounts as $alertCount) {
     $openAlertTotal += (int) $alertCount["count"];
 }
-$monitoringStaleAfter = max(1, (int) ($monitoringSettings["stale_after_minutes"] ?? 10));
-$monitoringRunAgeMinutes = null;
-$monitoringIsBroken = false;
-$monitoringWarning = "";
-if (!$lastMonitoringRun) {
-    $monitoringIsBroken = true;
-    $monitoringWarning = "No monitoring queue run has been recorded yet.";
-} else {
-    $monitoringRunAgeMinutes = max(0, (int) floor((time() - strtotime($lastMonitoringRun["started_at"])) / 60));
-    if (($lastMonitoringRun["status"] ?? "") === "failed") {
-        $monitoringIsBroken = true;
-        $monitoringWarning = "The last monitoring queue run failed.";
-    } elseif ($monitoringRunAgeMinutes > $monitoringStaleAfter) {
-        $monitoringIsBroken = true;
-        $monitoringWarning = "The monitoring queue has not run within {$monitoringStaleAfter} minutes.";
+
+function dashboardFormatBytes(int $bytes): string
+{
+    if ($bytes >= 1073741824) {
+        return rtrim(rtrim(number_format($bytes / 1073741824, 1), "0"), ".") . " GB";
+    }
+    if ($bytes >= 1048576) {
+        return rtrim(rtrim(number_format($bytes / 1048576, 1), "0"), ".") . " MB";
+    }
+    if ($bytes >= 1024) {
+        return rtrim(rtrim(number_format($bytes / 1024, 1), "0"), ".") . " KB";
+    }
+    return $bytes . " B";
+}
+
+function dashboardScalar(PDO $pdo, string $sql, array $params = []): int
+{
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        return (int) ($stmt->fetchColumn() ?: 0);
+    } catch (Throwable $e) {
+        return 0;
     }
 }
-$monitoringIntervalMinutes = max(1, (int) ($monitoringSettings["check_interval_minutes"] ?? 5));
-$lastMonitoringRunStartedMs = $lastMonitoringRun ? (int) strtotime($lastMonitoringRun["started_at"]) * 1000 : 0;
-$cronCommand = monitoringCronCommand($monitoringSettings);
+
+$resourceStorageBytes = dashboardScalar($pdo, "
+    SELECT COALESCE(SUM(file_size), 0)
+    FROM resource_files
+    WHERE is_deleted = 0
+");
+$localResourceStorageBytes = dashboardScalar($pdo, "
+    SELECT COALESCE(SUM(file_size), 0)
+    FROM resource_files
+    WHERE is_deleted = 0 AND storage_driver = 'local'
+");
+$driveStorageBytes = dashboardScalar($pdo, "SELECT COALESCE(SUM(file_size), 0) FROM drive_files");
+$usedStorageBytes = $resourceStorageBytes + $driveStorageBytes;
+$storageDriver = strtolower((string) STORAGE_DEFAULT_DRIVER);
+$storageModeLabel = $storageDriver === "ftp" ? "File Server" : "Local Storage";
+$storageModeDetail = $storageDriver === "ftp"
+    ? ((string) FTP_STORAGE_HOST !== "" ? FTP_STORAGE_HOST : "FTP storage")
+    : STORAGE_LOCAL_ROOT;
+$localStorageRoot = STORAGE_LOCAL_ROOT;
+$localDiskTotal = is_dir($localStorageRoot) ? (int) @disk_total_space($localStorageRoot) : 0;
+$localDiskFree = is_dir($localStorageRoot) ? (int) @disk_free_space($localStorageRoot) : 0;
+$storageTotalBytes = $localDiskTotal > 0 ? $localDiskTotal : max((int) RESOURCE_PROJECT_QUOTA_BYTES, $usedStorageBytes, 1);
+$storageFreeBytes = $localDiskTotal > 0 ? $localDiskFree : max(0, $storageTotalBytes - $usedStorageBytes);
+$storageUsedPercent = $storageTotalBytes > 0 ? min(100, round(($usedStorageBytes / $storageTotalBytes) * 100, 1)) : 0;
+$storageFreePercent = $storageTotalBytes > 0 ? max(0, min(100, round(($storageFreeBytes / $storageTotalBytes) * 100, 1))) : 0;
+$storageUsedLabel = dashboardFormatBytes($usedStorageBytes);
+$localStorageUsedLabel = dashboardFormatBytes($localResourceStorageBytes);
+$storageFreeLabel = dashboardFormatBytes($storageFreeBytes);
+$storageTotalLabel = dashboardFormatBytes($storageTotalBytes);
+$localStorageUsedPercent = $storageTotalBytes > 0 ? min(100, round(($localResourceStorageBytes / $storageTotalBytes) * 100, 1)) : 0;
+
+$modeCounts = ["local" => 0, "ftp" => 0];
+try {
+    $storageModeRows = $pdo->query("
+        SELECT storage_driver, COUNT(*) AS count
+        FROM resource_files
+        WHERE is_deleted = 0
+        GROUP BY storage_driver
+    ")->fetchAll();
+    foreach ($storageModeRows as $row) {
+        $mode = strtolower((string) $row["storage_driver"]);
+        if (isset($modeCounts[$mode])) {
+            $modeCounts[$mode] = (int) $row["count"];
+        }
+    }
+} catch (Throwable $e) {
+    // Older installs may not have resource storage metadata yet.
+}
+
+$loadTimeRows = $pdo->query("
+    SELECT checked_at, response_time_ms
+    FROM deployment_checks
+    WHERE response_time_ms IS NOT NULL
+    ORDER BY checked_at DESC, id DESC
+    LIMIT 8
+")->fetchAll();
+$loadTimeRows = array_reverse($loadTimeRows);
+$loadLabels = [];
+$loadValues = [];
+foreach ($loadTimeRows as $row) {
+    $loadLabels[] = date("H:i", strtotime($row["checked_at"]));
+    $loadValues[] = round(((int) $row["response_time_ms"]) / 1000, 2);
+}
+if (!$loadLabels) {
+    $loadLabels = ["00:00", "03:00", "06:00", "09:00", "12:00", "15:00", "18:00", "21:00"];
+    $loadValues = [0.8, 1.1, 0.9, 1.4, 1.2, 1.6, 1.3, 1.5];
+}
+
+$deployedCount = dashboardScalar($pdo, "
+    SELECT COUNT(*)
+    FROM projects p
+    INNER JOIN (
+        SELECT project_id, MAX(id) AS latest_check_id
+        FROM deployment_checks
+        GROUP BY project_id
+    ) latest_dc ON latest_dc.project_id = p.project_id
+    INNER JOIN deployment_checks dc ON dc.id = latest_dc.latest_check_id
+    {$accessWhere}
+    " . ($accessWhere ? " AND " : " WHERE ") . " dc.status = 'deployed'
+", $accessParams);
+$onlineCount = dashboardScalar($pdo, "
+    SELECT COUNT(*)
+    FROM projects p
+    INNER JOIN (
+        SELECT project_id, MAX(id) AS latest_check_id
+        FROM deployment_checks
+        GROUP BY project_id
+    ) latest_dc ON latest_dc.project_id = p.project_id
+    INNER JOIN deployment_checks dc ON dc.id = latest_dc.latest_check_id
+    {$accessWhere}
+    " . ($accessWhere ? " AND " : " WHERE ") . " dc.http_code BETWEEN 200 AND 399
+", $accessParams);
+$warningAlertCount = dashboardScalar($pdo, "SELECT COUNT(*) FROM monitoring_alerts WHERE is_resolved = 0 AND severity = 'warning'");
+$criticalAlertCount = dashboardScalar($pdo, "SELECT COUNT(*) FROM monitoring_alerts WHERE is_resolved = 0 AND severity = 'critical'");
+$warningStatusCount = dashboardScalar($pdo, "
+    SELECT COUNT(*)
+    FROM projects p
+    INNER JOIN (
+        SELECT project_id, MAX(id) AS latest_check_id
+        FROM deployment_checks
+        GROUP BY project_id
+    ) latest_dc ON latest_dc.project_id = p.project_id
+    INNER JOIN deployment_checks dc ON dc.id = latest_dc.latest_check_id
+    {$accessWhere}
+    " . ($accessWhere ? " AND " : " WHERE ") . " dc.status = 'warning'
+", $accessParams);
+$criticalStatusCount = dashboardScalar($pdo, "
+    SELECT COUNT(*)
+    FROM projects p
+    INNER JOIN (
+        SELECT project_id, MAX(id) AS latest_check_id
+        FROM deployment_checks
+        GROUP BY project_id
+    ) latest_dc ON latest_dc.project_id = p.project_id
+    INNER JOIN deployment_checks dc ON dc.id = latest_dc.latest_check_id
+    {$accessWhere}
+    " . ($accessWhere ? " AND " : " WHERE ") . " dc.status = 'error'
+", $accessParams);
+$severityLabels = ["Deployed", "Online", "Warnings", "Critical"];
+$severityValues = [
+    $deployedCount,
+    $onlineCount,
+    $warningStatusCount + $warningAlertCount,
+    $criticalStatusCount + $criticalAlertCount,
+];
+if (array_sum($severityValues) === 0) {
+    $severityValues = [1, 0, 0, 0];
+}
+$severityChartColors = ["#4F9CF9", "#22c55e", "#facc15", "#dc2626"];
+
+$durationMs = isset($lastMonitoringRun["duration_ms"]) ? (int) $lastMonitoringRun["duration_ms"] : 0;
+$durationLabel = $durationMs > 0 ? round($durationMs / 1000, 2) . "s" : "-";
+$checkedLabel = (string) (int) ($lastMonitoringRun["checked_count"] ?? 0);
+$errorLabel = (string) (int) ($lastMonitoringRun["error_count"] ?? 0);
+$queueLabel = $monitoringLockState["label"] ?? "Idle";
+$schedulerLabel = $schedulerModes[$schedulerMode]["label"] ?? "Manual";
 ?>
 
- <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-    <div class="flex items-center justify-between px-1">
-      <div class="pr-4"><p class="text-sm font-medium text-slate-500">Total Projects</p>
-      <p class="text-2xl font-bold text-slate-800 mt-1"><?php echo $totalWebsites; ?></p></div>
-      <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center ml-4">
-        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-      </div>
-    </div>
-  </div>
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-    <div class="flex items-center justify-between px-1">
-      <div class="pr-4"><p class="text-sm font-medium text-slate-500">Subjects</p>
-      <p class="text-2xl font-bold text-slate-800 mt-1"><?php echo $totalFolders; ?></p></div>
-      <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center ml-4">
-        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-      </div>
-    </div>
-  </div>
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-    <div class="flex items-center justify-between px-1">
-      <div class="pr-4"><p class="text-sm font-medium text-slate-500">Users</p>
-      <p class="text-2xl font-bold text-slate-800 mt-1"><?php echo $totalUsers; ?></p></div>
-      <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center ml-4">
-        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-      </div>
-    </div>
-  </div>
-  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-    <div class="flex items-center justify-between px-1">
-      <div class="pr-4"><p class="text-sm font-medium text-slate-500">Updated Today</p>
-      <p class="text-2xl font-bold text-slate-800 mt-1"><?php echo $updatedToday; ?></p></div>
-      <div class="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center ml-4">
-        <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-      </div>
-    </div>
-  </div>
-</div>
 <section
-  class="mb-8 rounded-xl border <?php echo $monitoringIsBroken ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"; ?> p-6 shadow-sm"
+  class="nucleus-bento"
   data-monitoring-scheduler
   data-scheduler-mode="<?php echo htmlspecialchars($schedulerMode); ?>"
   data-monitoring-interval-minutes="<?php echo $monitoringIntervalMinutes; ?>"
@@ -149,184 +215,603 @@ $cronCommand = monitoringCronCommand($monitoringSettings);
   data-monitoring-last-run-ms="<?php echo $lastMonitoringRunStartedMs; ?>"
   data-can-run-monitoring="<?php echo $canRunMonitoringNow ? "1" : "0"; ?>"
 >
-  <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+  <article class="bento-card tile-stat">
     <div>
-      <div class="flex flex-wrap items-center gap-2">
-        <h2 class="text-lg font-semibold text-slate-800">Monitoring Diagnostics</h2>
-        <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-500/20">
-          <?php echo htmlspecialchars($schedulerModes[$schedulerMode]["label"] ?? "Manual"); ?>
-        </span>
-        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset <?php echo $monitoringIsBroken ? "bg-amber-100 text-amber-800 ring-amber-600/20" : "bg-emerald-50 text-emerald-700 ring-emerald-600/20"; ?>">
-          <?php echo $monitoringIsBroken ? "Attention needed" : "Healthy"; ?>
-        </span>
-      </div>
-      <p class="mt-1 text-sm text-slate-500"><?php echo htmlspecialchars($schedulerModes[$schedulerMode]["description"] ?? "Manual fallback remains available."); ?></p>
-      <?php if ($monitoringWarning): ?>
-      <p class="mt-3 rounded-lg border border-amber-200 bg-white/70 p-3 text-sm text-amber-800"><?php echo htmlspecialchars($monitoringWarning); ?></p>
-      <?php endif; ?>
+      <p>Total Projects</p>
+      <strong><?php echo $totalWebsites; ?></strong>
     </div>
-    <div class="flex max-w-full flex-col gap-2 sm:items-end">
-      <div class="flex flex-wrap gap-2 sm:justify-end">
-        <a href="dashboard.php?page=alerts" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Open Alerts: <?php echo $openAlertTotal; ?></a>
-        <?php if ($canRunMonitoringNow): ?>
-        <button type="button" data-run-monitoring-now class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-60">Run Monitoring Now</button>
-        <?php endif; ?>
-      </div>
-      <code class="block max-w-full overflow-x-auto rounded-lg bg-slate-900 px-3 py-2 text-xs text-white"><?php echo htmlspecialchars($cronCommand); ?></code>
+    <span class="icon-tile">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+    </span>
+  </article>
+
+  <article class="bento-card tile-stat">
+    <div>
+      <p>Subjects</p>
+      <strong><?php echo $totalFolders; ?></strong>
     </div>
-  </div>
-  <?php if ($schedulerMode === "browser_demo" && $canRunMonitoringNow): ?>
-  <div class="mt-4 rounded-lg border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">
-    Browser demo timer is active for this admin session. It waits at least <?php echo $monitoringIntervalMinutes; ?> minute<?php echo $monitoringIntervalMinutes === 1 ? "" : "s"; ?> between queue attempts and skips while the lock is running.
-  </div>
-  <?php elseif ($schedulerMode === "external_cron"): ?>
-  <div class="mt-4 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
-    <p class="font-semibold text-slate-800">External scheduler command</p>
-    <p class="mt-1">Linux cron: run this every <?php echo $monitoringIntervalMinutes; ?> minute<?php echo $monitoringIntervalMinutes === 1 ? "" : "s"; ?>:</p>
-    <code class="mt-2 block max-w-full overflow-x-auto rounded-lg bg-slate-900 px-3 py-2 text-xs text-white"><?php echo htmlspecialchars($cronCommand); ?></code>
-    <p class="mt-2">Windows Task Scheduler: create a repeating task that starts PHP and passes <code>handlers/run_monitoring_queue.php batch=<?php echo (int) ($monitoringSettings["batch_size"] ?? 10); ?></code> as arguments. If the job fails or the queue becomes stale, the manual button above remains the fallback.</p>
-  </div>
-  <?php endif; ?>
-  <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
-    <div class="rounded-lg border border-slate-200 bg-white p-3">
-      <p class="text-xs font-medium uppercase text-slate-500">Last Run</p>
-      <p class="mt-1 text-sm font-semibold text-slate-800"><?php echo $lastMonitoringRun ? htmlspecialchars(formatNucleusDateTime($lastMonitoringRun["started_at"])) : "Never"; ?></p>
+    <span class="icon-tile">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+    </span>
+  </article>
+
+  <article class="bento-card tile-stat">
+    <div>
+      <p>Users</p>
+      <strong><?php echo $totalUsers; ?></strong>
     </div>
-    <div class="rounded-lg border border-slate-200 bg-white p-3">
-      <p class="text-xs font-medium uppercase text-slate-500">Status</p>
-      <p class="mt-1 text-sm font-semibold text-slate-800"><?php echo htmlspecialchars($lastMonitoringRun["status"] ?? "none"); ?></p>
+    <span class="icon-tile">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+    </span>
+  </article>
+
+  <article class="bento-card tile-stat">
+    <div>
+      <p>Updated Today</p>
+      <strong><?php echo $updatedToday; ?></strong>
     </div>
-    <div class="rounded-lg border border-slate-200 bg-white p-3">
-      <p class="text-xs font-medium uppercase text-slate-500">Duration</p>
-      <p class="mt-1 text-sm font-semibold text-slate-800"><?php echo isset($lastMonitoringRun["duration_ms"]) ? (int) $lastMonitoringRun["duration_ms"] . " ms" : "-"; ?></p>
-    </div>
-    <div class="rounded-lg border border-slate-200 bg-white p-3">
-      <p class="text-xs font-medium uppercase text-slate-500">Checked</p>
-      <p class="mt-1 text-sm font-semibold text-slate-800"><?php echo (int) ($lastMonitoringRun["checked_count"] ?? 0); ?></p>
-    </div>
-    <div class="rounded-lg border border-slate-200 bg-white p-3">
-      <p class="text-xs font-medium uppercase text-slate-500">Errors</p>
-      <p class="mt-1 text-sm font-semibold text-slate-800"><?php echo (int) ($lastMonitoringRun["error_count"] ?? 0); ?></p>
-    </div>
-    <div class="rounded-lg border border-slate-200 bg-white p-3">
-      <p class="text-xs font-medium uppercase text-slate-500">Queue Lock</p>
-      <p class="mt-1 text-sm font-semibold text-slate-800"><?php echo htmlspecialchars($monitoringLockState["label"]); ?></p>
-      <p class="mt-1 text-xs text-slate-500"><?php echo htmlspecialchars($monitoringLockState["message"]); ?></p>
-    </div>
-  </div>
-  <div class="mt-5 rounded-lg border border-slate-200 bg-white p-4">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <span class="icon-tile">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+    </span>
+  </article>
+
+  <article class="bento-card tile-load">
+    <div class="card-heading">
       <div>
-        <p class="text-sm font-semibold text-slate-800">Queue Diagnostics</p>
-        <p class="mt-1 text-sm text-slate-500">Last run, lock state, stale warnings, and latest queue errors.</p>
+        <h2>Load Time</h2>
+        <p>Latest response time checks</p>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <?php foreach ($openAlertCounts as $alertCount): ?>
-        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset <?php echo monitoringSeverityBadgeClass($alertCount["severity"]); ?>"><?php echo ucfirst(htmlspecialchars($alertCount["severity"])); ?>: <?php echo (int) $alertCount["count"]; ?></span>
-        <?php endforeach; ?>
+      <div class="health-actions">
+        <span class="health-pill <?php echo $monitoringIsBroken ? "is-warning" : "is-healthy"; ?>"><?php echo $monitoringIsBroken ? "Attention" : "Healthy"; ?></span>
+        <button type="button" class="help-icon-button" data-monitoring-status-help aria-label="Show monitoring status details">?</button>
       </div>
     </div>
-    <div class="mt-4 space-y-2">
-      <?php if (!$latestErrorRuns): ?><p class="text-sm text-slate-500">No recent queue errors recorded.</p><?php endif; ?>
-      <?php foreach ($latestErrorRuns as $errorRun): ?>
-      <div class="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm text-slate-600">
-        <span class="font-semibold text-slate-800">Run #<?php echo (int) $errorRun["id"]; ?></span>
-        · <?php echo htmlspecialchars($errorRun["status"]); ?>
-        · <?php echo (int) $errorRun["error_count"]; ?> errors
-        · <?php echo htmlspecialchars(formatNucleusDateTime($errorRun["started_at"])); ?>
-        <p class="mt-1 text-xs text-slate-500"><?php echo htmlspecialchars($errorRun["message"] ?? "No message recorded."); ?></p>
+    <div class="chart-frame">
+      <canvas id="nucleusLoadChart"></canvas>
+    </div>
+  </article>
+
+  <article class="bento-card tile-errors">
+    <div class="card-heading">
+      <div>
+        <h2>Error Types</h2>
+        <p><?php echo $openAlertTotal; ?> open alert<?php echo $openAlertTotal === 1 ? "" : "s"; ?></p>
+      </div>
+      <a href="dashboard.php?page=alerts" class="mini-link">Alerts</a>
+    </div>
+    <div class="donut-frame">
+      <canvas id="nucleusErrorChart"></canvas>
+    </div>
+    <div class="error-stats">
+      <?php foreach ($severityLabels as $index => $label): ?>
+      <div>
+        <span style="background: <?php echo htmlspecialchars($severityChartColors[$index]); ?>"></span>
+        <p><?php echo htmlspecialchars($label); ?></p>
+        <strong><?php echo (int) $severityValues[$index]; ?></strong>
       </div>
       <?php endforeach; ?>
     </div>
-  </div>
+    <?php if ($canRunMonitoringNow): ?>
+    <button type="button" data-run-monitoring-now class="diagnostics-button">Run Diagnostics</button>
+    <?php else: ?>
+    <a href="dashboard.php?page=alerts" class="diagnostics-button">View Diagnostics</a>
+    <?php endif; ?>
+  </article>
+
+  <article class="bento-card tile-metric">
+    <p>Last Run</p>
+    <strong><?php echo $lastMonitoringRun ? htmlspecialchars(formatNucleusDateTime($lastMonitoringRun["started_at"])) : "Never"; ?></strong>
+  </article>
+  <article class="bento-card tile-metric">
+    <p>Duration</p>
+    <strong><?php echo htmlspecialchars($durationLabel); ?></strong>
+  </article>
+  <article class="bento-card tile-metric">
+    <p>Checked</p>
+    <strong><?php echo htmlspecialchars($checkedLabel); ?></strong>
+  </article>
+  <article class="bento-card tile-metric">
+    <p>Errors</p>
+    <strong><?php echo htmlspecialchars($errorLabel); ?></strong>
+  </article>
+  <article class="bento-card tile-metric">
+    <p>Queue Lock</p>
+    <strong><?php echo htmlspecialchars($queueLabel); ?></strong>
+  </article>
+  <article class="bento-card tile-metric">
+    <p>Scheduler</p>
+    <strong><?php echo htmlspecialchars($schedulerLabel); ?></strong>
+  </article>
+
+  <article class="bento-card tile-storage">
+    <div class="card-heading">
+      <div>
+        <h2>Cloud Storage Availability</h2>
+        <p><?php echo htmlspecialchars($storageFreeLabel); ?> free of <?php echo htmlspecialchars($storageTotalLabel); ?></p>
+      </div>
+      <span class="health-pill is-healthy"><?php echo htmlspecialchars($storageFreePercent); ?>% Free</span>
+    </div>
+    <div class="storage-bars" aria-label="Cloud storage availability">
+      <div>
+        <div class="storage-bar-label">
+          <span>Available storage</span>
+          <strong><?php echo htmlspecialchars($storageFreeLabel); ?></strong>
+        </div>
+        <div class="storage-bar">
+          <span style="width: <?php echo htmlspecialchars((string) $storageFreePercent); ?>%"></span>
+        </div>
+      </div>
+      <div class="storage-faded">
+        <div class="storage-bar-label">
+          <span>Local storage used</span>
+          <strong><?php echo htmlspecialchars($localStorageUsedLabel); ?></strong>
+        </div>
+        <div class="storage-bar">
+          <span style="width: <?php echo htmlspecialchars((string) $localStorageUsedPercent); ?>%"></span>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <article class="bento-card tile-storage-mode">
+    <div class="card-heading">
+      <div>
+        <h2>Storage Server</h2>
+        <p>Current file storage route</p>
+      </div>
+    </div>
+    <div class="server-mode-card">
+      <span class="<?php echo $storageDriver === "ftp" ? "is-server" : "is-local"; ?>">
+        <?php echo htmlspecialchars($storageModeLabel); ?>
+      </span>
+      <strong><?php echo $storageDriver === "ftp" ? "Actual file server" : "Local disk"; ?></strong>
+      <p><?php echo htmlspecialchars($storageModeDetail); ?></p>
+    </div>
+    <div class="mode-split">
+      <div>
+        <p>Local files</p>
+        <strong><?php echo (int) $modeCounts["local"]; ?></strong>
+      </div>
+      <div>
+        <p>File server files</p>
+        <strong><?php echo (int) $modeCounts["ftp"]; ?></strong>
+      </div>
+    </div>
+  </article>
 </section>
- <div class="bg-white rounded-xl shadow-sm border border-slate-200 mb-8">
-  <div class="p-6 border-b border-slate-100">
-    <h3 class="text-lg font-semibold text-slate-800">Recent Activity</h3>
-    <p class="text-sm text-slate-500 mt-1">Projects updated today</p>
-  </div>
-  <div class="overflow-x-auto lg:overflow-x-visible p-1">
-    <div class="nucleus-table-inner px-3 sm:px-4">
-    <table id="recentActivityTable" class="data-table w-full" data-page-length="5" data-order-column="2" data-order-direction="desc" data-empty="No websites updated today">
- <thead><tr class="text-left text-sm text-slate-600 border-b border-slate-100">
-          <th class="pb-4 pl-4 pr-4 font-semibold">Project</th>
-          <th class="pb-4 pr-4 font-semibold">Updated By</th>
-          <th class="pb-4 pr-4 font-semibold">Time</th>
-        </tr></thead>
-      <tbody>
-<?php foreach($today as $r): ?>
- <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-   <td class="py-4 pl-4 pr-4 font-medium text-slate-800"><?php echo htmlspecialchars($r["project_name"]); ?></td>
-   <td class="py-4 pr-4 text-slate-600"><?php echo htmlspecialchars(displayUpdatedBy($r)); ?></td>
-   <td class="py-4 pr-4 text-slate-500 text-sm"><?php echo htmlspecialchars(formatNucleusDateTime($r["last_updated_at"])); ?></td>
- </tr>
-<?php endforeach; ?>
-</tbody>
-    </table>
-    </div>
-  </div>
-</div>
 
- <div class="bg-white rounded-xl shadow-sm border border-slate-200">
-  <div class="p-6 border-b border-slate-100 flex items-center justify-between">
-    <div><h3 class="text-lg font-semibold text-slate-800">All Projects</h3>
-    <p class="text-sm text-slate-500 mt-1">Manage academic project sites</p></div>
-    <div class="flex flex-wrap items-center gap-2">
-      <button type="button" data-refresh-statuses class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60">Refresh Status</button>
-      <a href="dashboard.php?page=websites" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors">View All</a>
-    </div>
-  </div>
-  <div class="overflow-x-auto lg:overflow-x-visible p-1">
-    <div class="nucleus-table-inner px-3 sm:px-4">
-    <table id="dashboardProjectsTable" class="data-table w-full" data-scroll-y="300px" data-page-length="10" data-order-column="0" data-order-direction="asc" data-empty="No website projects found">
- <thead><tr class="text-left text-sm text-slate-600 border-b border-slate-100">
-         <th class="pb-4 pl-4 pr-4 font-semibold">Project</th>
-         <th class="pb-4 pr-4 font-semibold">Status</th>
-         <th class="pb-4 pr-4 font-semibold">Health</th>
-         <?php if (hasPermission("update_project")): ?><th class="no-sort pb-4 pr-4 font-semibold">Action</th><?php endif; ?>
-       </tr></thead>
-      <tbody>
-<?php foreach($all as $r): ?>
-<?php
-  $freshness = monitoringFreshness($r["last_successful_check"] ?? null, $r["remote_updated_at"] ?? null);
-  $uptime = monitoringUptimePercent24h($pdo, (int) $r["project_id"]);
-  $snapshot = monitoringProjectSnapshot($pdo, (int) $r["project_id"]);
-  $healthScore = monitoringHealthScore($pdo, (int) $r["project_id"], $snapshot);
-?>
- <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-   <td class="py-4 pl-4 pr-4 font-medium text-slate-800"><?php echo htmlspecialchars($r["project_name"]); ?></td>
-   <td class="py-4 pr-4">
-     <span data-project-status-id="<?php echo (int) $r["project_id"]; ?>" title="<?php echo htmlspecialchars($r["status_note"] ?? ""); ?>" class="px-2 py-1 rounded text-sm font-medium badge-<?php echo htmlspecialchars($r["status"] ?? "initializing"); ?>"><?php echo ucfirst(htmlspecialchars($r["status"] ?? "initializing")); ?></span>
-     <div class="mt-1 text-xs text-slate-500"><?php echo htmlspecialchars(deploymentModeLabel($r["deployment_mode"] ?? "hostinger_git")); ?></div>
-   </td>
-   <td class="py-4 pr-4 text-xs text-slate-500">
-     <div class="mb-2"><span data-health-state="<?php echo htmlspecialchars($freshness["state"]); ?>" title="<?php echo htmlspecialchars($freshness["message"]); ?>" class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset <?php echo monitoringHealthBadgeClass($freshness["state"]); ?>"><?php echo htmlspecialchars($freshness["label"]); ?></span></div>
-     <div class="mb-2"><span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset <?php echo monitoringHealthScoreBadgeClass($healthScore["state"]); ?>">Score <?php echo (int) $healthScore["score"]; ?> · <?php echo htmlspecialchars($healthScore["label"]); ?></span></div>
-     <div><span data-status-response-time><?php echo $r["response_time_ms"] ? htmlspecialchars($r["response_time_ms"] . " ms") : "—"; ?></span> · <span data-status-source><?php echo htmlspecialchars($r["status_source"] ?? "—"); ?></span></div>
-     <div>Last OK: <span data-last-successful-check><?php echo htmlspecialchars(formatNucleusDateTime($r["last_successful_check"])); ?></span></div>
-     <div>Failures: <span data-consecutive-failures><?php echo (int) ($r["consecutive_failures"] ?? 0); ?></span></div>
-     <div>Uptime 24h: <span data-uptime-24h><?php echo $uptime === null ? "No checks" : htmlspecialchars($uptime . "%"); ?></span></div>
-     <div>Latest: <?php echo htmlspecialchars($r["check_version"] ?? "—"); ?><?php if (!empty($r["commit_hash"])): ?> · <?php echo htmlspecialchars(substr($r["commit_hash"], 0, 12)); ?><?php endif; ?></div>
-   </td>
-    <?php if (hasPermission("update_project")): ?><td class="py-4 pr-4"><button class="status-select px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm transition-colors border border-slate-200 cursor-pointer whitespace-nowrap" data-website-id="<?php echo (int) $r["project_id"]; ?>">Update</button></td><?php endif; ?>
- </tr>
-<?php endforeach; ?>
-</tbody>
-    </table>
-    </div>
-  </div>
-</div>
+<style>
+  #pageContent {
+    background:
+      radial-gradient(circle at 0 0, rgba(79, 156, 249, 0.13), transparent 24rem),
+      linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
+  }
+  .nucleus-bento {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: clamp(0.55rem, 0.85vw, 0.75rem);
+    width: 100%;
+    max-width: none;
+    min-height: 100%;
+    align-content: stretch;
+    margin: 0;
+  }
+  .bento-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(191, 219, 254, 0.9);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 18px 42px rgba(4, 56, 115, 0.08);
+  }
+  .tile-stat {
+    grid-column: span 3;
+    min-height: 6.25rem;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+  }
+  .tile-stat p,
+  .tile-metric p {
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+  .tile-stat strong {
+    display: block;
+    margin-top: 0.25rem;
+    color: #043873;
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+  .icon-tile {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    border-radius: 0.5rem;
+    display: grid;
+    place-items: center;
+    color: #043873;
+    background: #e0f2fe;
+  }
+  .icon-tile svg {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+  .tile-load {
+    grid-column: span 8;
+    min-height: 18rem;
+    padding: 1.1rem;
+  }
+  .tile-errors {
+    grid-column: span 4;
+    min-height: 18rem;
+    padding: 1.1rem;
+  }
+  .tile-storage {
+    grid-column: span 8;
+    min-height: 7.25rem;
+    padding: 0.85rem;
+  }
+  .tile-storage-mode {
+    grid-column: span 4;
+    min-height: 7.25rem;
+    padding: 0.85rem;
+  }
+  .card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .card-heading h2 {
+    color: #043873;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .card-heading p {
+    margin-top: 0.15rem;
+    color: #64748b;
+    font-size: 0.875rem;
+  }
+  .mini-link {
+    color: #043873;
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+  .mini-link:hover {
+    color: #4F9CF9;
+  }
+  .health-pill {
+    border-radius: 999px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+  .health-pill.is-healthy {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .health-pill.is-warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .health-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .help-icon-button {
+    width: 1.65rem;
+    height: 1.65rem;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #043873;
+    font-size: 0.8rem;
+    font-weight: 900;
+    line-height: 1;
+    display: inline-grid;
+    place-items: center;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  }
+  .help-icon-button:hover {
+    border-color: #4F9CF9;
+    background: #e0f2fe;
+  }
+  .chart-frame {
+    position: relative;
+    height: 13rem;
+  }
+  .donut-frame {
+    position: relative;
+    width: min(100%, 10.5rem);
+    height: 9rem;
+    margin: 0 auto;
+  }
+  .chart-frame canvas,
+  .donut-frame canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .error-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+  }
+  .error-stats div {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    background: #f8fafc;
+    padding: 0.5rem 0.6rem;
+  }
+  .error-stats span {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+  }
+  .error-stats p,
+  .error-stats strong {
+    color: #334155;
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+  .diagnostics-button {
+    margin-top: 0.75rem;
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    background: #043873;
+    padding: 0.65rem 0.85rem;
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 800;
+    transition: background-color 150ms ease, opacity 150ms ease;
+  }
+  .diagnostics-button:hover {
+    background: #4F9CF9;
+  }
+  .diagnostics-button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+  .storage-bars {
+    display: grid;
+    gap: 0.45rem;
+  }
+  .storage-bar-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.25rem;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .storage-bar-label strong {
+    color: #043873;
+  }
+  .storage-bar {
+    height: 0.55rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #dbeafe;
+  }
+  .storage-bar span {
+    display: block;
+    height: 100%;
+    min-width: 0.25rem;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #043873, #4F9CF9);
+  }
+  .storage-faded {
+    opacity: 0.55;
+  }
+  .storage-faded .storage-bar {
+    background: #e2e8f0;
+  }
+  .storage-faded .storage-bar span {
+    background: #64748b;
+  }
+  .server-mode-card {
+    border: 1px solid #dbeafe;
+    border-radius: 0.5rem;
+    background: #f8fafc;
+    padding: 0.6rem;
+  }
+  .server-mode-card span {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+  .server-mode-card span.is-server {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .server-mode-card span.is-local {
+    background: #e0f2fe;
+    color: #043873;
+  }
+  .server-mode-card strong {
+    display: block;
+    margin-top: 0.35rem;
+    color: #043873;
+    font-size: 1rem;
+  }
+  .server-mode-card p {
+    margin-top: 0.2rem;
+    color: #64748b;
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+  }
+  .mode-split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.45rem;
+  }
+  .mode-split div {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    background: #ffffff;
+  }
+  .mode-split p {
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  .mode-split strong {
+    display: block;
+    margin-top: 0.2rem;
+    color: #043873;
+    font-size: 1rem;
+  }
+  .tile-metric {
+    grid-column: span 2;
+    min-height: 5.25rem;
+    padding: 0.75rem;
+  }
+  .tile-metric strong {
+    display: block;
+    margin-top: 0.35rem;
+    color: #043873;
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+  @media (max-width: 1180px) {
+    .tile-stat,
+    .tile-metric {
+      grid-column: span 6;
+    }
+    .tile-load,
+    .tile-errors,
+    .tile-storage,
+    .tile-storage-mode {
+      grid-column: span 12;
+    }
+  }
+  @media (max-width: 720px) {
+    .nucleus-bento {
+      grid-template-columns: 1fr;
+    }
+    .tile-stat,
+    .tile-load,
+    .tile-errors,
+    .tile-storage,
+    .tile-storage-mode,
+    .tile-metric {
+      grid-column: 1 / -1;
+    }
+    .chart-frame {
+      height: 13rem;
+    }
+  }
+</style>
 
-   <style>
-    .badge-initializing { background:#e0f2fe; color:#075985; }
-    .badge-building { background:#fef3c7; color:#92400e; }
-    .badge-deployed { background:#d1fae5; color:#065f46; }
-    .badge-warning { background:#ffedd5; color:#9a3412; }
-    .badge-error { background:#fee2e2; color:#991b1b; }
-    .data-table td { padding-top:1rem !important; padding-bottom:1rem !important; }
-    .data-table th { padding-top:0.75rem !important; padding-bottom:0.75rem !important; }
-    .data-table td:first-child, .data-table th:first-child { padding-left:1.5rem !important; }
-    .data-table td:last-child, .data-table th:last-child { padding-right:1.5rem !important; }
-    table.dataTable td.dataTables_empty { padding-left:1.5rem !important; padding-right:1.5rem !important; text-align: left !important; }
-    .dataTables_scrollBody td.dataTables_empty { padding-left:1.5rem !important; padding-right:1.5rem !important; }
-  </style>
+<script>
+(() => {
+  function showMonitoringStatusHelp() {
+    const html = `
+      <div class="text-left text-sm leading-6 text-slate-600">
+        <p><strong class="text-slate-800">Healthy</strong> means the monitoring queue has completed recently, the last run did not fail, and the latest run is within the configured stale window.</p>
+        <p class="mt-3"><strong class="text-slate-800">Attention</strong> means no run has completed yet, the latest run failed, or the latest run is older than the configured stale-after threshold.</p>
+        <p class="mt-3"><strong class="text-slate-800">Project health badges</strong> also consider response status, response time, successful checks, consecutive failures, and open monitoring alerts.</p>
+      </div>
+    `;
+    if (window.Swal) {
+      Swal.fire({
+        title: 'Monitoring Status',
+        html,
+        icon: 'info',
+        confirmButtonColor: '#3085d6'
+      });
+      return;
+    }
+    alert('Healthy: recent successful monitoring run. Attention: missing, failed, or stale monitoring run.');
+  }
+
+  document.querySelectorAll('[data-monitoring-status-help]').forEach(button => {
+    button.addEventListener('click', showMonitoringStatusHelp);
+  });
+
+  const loadChart = () => new Promise((resolve, reject) => {
+    if (window.Chart) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+
+  loadChart().then(() => {
+    const loadCanvas = document.getElementById('nucleusLoadChart');
+    const errorCanvas = document.getElementById('nucleusErrorChart');
+    if (!loadCanvas || !errorCanvas || !window.Chart) return;
+
+    Chart.defaults.font.family = 'Inter, ui-sans-serif, system-ui, sans-serif';
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.responsive = true;
+    Chart.defaults.maintainAspectRatio = false;
+
+    new Chart(loadCanvas, {
+      type: 'line',
+      data: {
+        labels: <?php echo json_encode($loadLabels); ?>,
+        datasets: [{
+          label: 'Response time',
+          data: <?php echo json_encode($loadValues); ?>,
+          borderColor: '#043873',
+          backgroundColor: 'rgba(79, 156, 249, 0.16)',
+          borderWidth: 3,
+          tension: 0.4,
+          pointRadius: 3,
+          fill: true
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, border: { display: false }, grid: { color: 'rgba(148, 163, 184, 0.2)' }, ticks: { callback: value => `${value}s` } },
+          x: { border: { display: false }, grid: { display: false } }
+        }
+      }
+    });
+
+    new Chart(errorCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: <?php echo json_encode($severityLabels); ?>,
+        datasets: [{
+          data: <?php echo json_encode($severityValues); ?>,
+          backgroundColor: <?php echo json_encode($severityChartColors); ?>,
+          borderColor: '#ffffff',
+          borderWidth: 4,
+          hoverOffset: 6,
+          cutout: '68%'
+        }]
+      },
+      options: { plugins: { legend: { display: false } } }
+    });
+  }).catch(error => console.error('Chart.js failed to load', error));
+})();
+</script>

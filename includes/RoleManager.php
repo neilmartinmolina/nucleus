@@ -53,7 +53,11 @@ class RoleManager {
     
     // Check if user is admin
     public function isAdmin($userId) {
-        return $this->getUserRole($userId) === "admin";
+        return in_array($this->getUserRole($userId), ["admin", "superadmin"], true);
+    }
+
+    public function canManageFiles($userId) {
+        return in_array($this->getUserRole($userId), ["superadmin", "admin", "handler"], true);
     }
     
     // Require specific permission
@@ -65,16 +69,18 @@ class RoleManager {
     
     private function permissionsForRole($role) {
         $permissions = [
-            "admin" => ["create_project", "update_project", "delete_project", "manage_users", "manage_groups", "manage_requests", "view_projects", "view_activity_logs"],
-            "handler" => ["create_project", "update_project", "view_projects", "request_subject"],
-            "visitor" => ["view_projects", "request_project"],
+            "superadmin" => ["create_project", "update_project", "delete_project", "manage_users", "manage_groups", "manage_requests", "view_projects", "view_activity_logs", "request_subject", "request_project", "request_subject_join"],
+            "admin" => ["create_project", "update_project", "delete_project", "manage_users", "manage_groups", "manage_requests", "view_projects", "view_activity_logs", "request_subject", "request_project", "request_subject_join"],
+            "handler" => ["create_project", "update_project", "view_projects", "request_subject", "request_project", "request_subject_join"],
+            "member" => ["view_projects", "request_project", "request_subject_join"],
+            "visitor" => [],
         ];
         return $permissions[$role] ?? [];
     }
 
     public function canAccessProject($userId, $projectId) {
         $role = $this->getUserRole($userId);
-        if (in_array($role, ["admin", "visitor"], true)) {
+        if (in_array($role, ["admin", "superadmin"], true)) {
             return true;
         }
 
@@ -95,7 +101,7 @@ class RoleManager {
         }
 
         $role = $this->getUserRole($_SESSION["userId"]);
-        if (in_array($role, ["admin", "visitor"], true)) {
+        if (in_array($role, ["admin", "superadmin"], true)) {
             return ["", []];
         }
 
@@ -112,7 +118,7 @@ class RoleManager {
     public function getUserSubjects($userId) {
         $userRole = $this->getUserRole($userId);
         
-        if (in_array($userRole, ["admin", "visitor"], true)) {
+        if (in_array($userRole, ["admin", "superadmin"], true)) {
             $stmt = $this->pdo->query("SELECT * FROM subjects ORDER BY subject_code ASC");
             return $stmt->fetchAll();
         }
@@ -132,7 +138,7 @@ class RoleManager {
 
     public function canAccessSubject($userId, $subjectId) {
         $role = $this->getUserRole($userId);
-        if (in_array($role, ["admin", "visitor"], true)) {
+        if (in_array($role, ["admin", "superadmin"], true)) {
             return true;
         }
 

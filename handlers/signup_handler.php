@@ -38,35 +38,41 @@ function registerUser(array $input): array {
             return ["success" => false, "message" => "That username or email is already registered."];
         }
 
+        [$verificationToken, $verificationHash] = nucleusVerificationToken();
         $stmt = $pdo->prepare("
-            INSERT INTO users (username, passwordHash, fullName, email, role_id)
-            SELECT ?, ?, ?, ?, role_id
+            INSERT INTO users
+                (username, passwordHash, fullName, email, role_id, isVerified, email_verification_token, email_verification_expires_at, email_verification_sent_at)
+            SELECT ?, ?, ?, ?, role_id, 0, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR), NOW()
             FROM roles
-            WHERE role_name = 'visitor'
+            WHERE role_name = 'member'
         ");
         $stmt->execute([
             $username,
             Security::hashPassword($password),
             $fullName,
             $email,
+            $verificationHash,
         ]);
 
         if ($stmt->rowCount() < 1) {
-            return ["success" => false, "message" => "Default visitor role is missing. Please ask an administrator to check roles."];
+            return ["success" => false, "message" => "Default member role is missing. Please ask an administrator to check roles."];
         }
 
         $userId = (int) $pdo->lastInsertId();
         logActivity("user_signed_up", "New signup: {$username}", null, null, $userId);
 
-        sendNucleusEmail(
+        $emailSent = sendNucleusVerificationEmail(
             $email,
             $fullName,
-            "Welcome to Nucleus",
-            "<p>Hello " . htmlspecialchars($fullName, ENT_QUOTES, "UTF-8") . ",</p><p>Your Nucleus account has been created. You can now log in with your username or email address.</p>",
-            "Hello {$fullName},\n\nYour Nucleus account has been created. You can now log in with your username or email address."
+            $userId,
+            $verificationToken
         );
 
-        return ["success" => true, "message" => "Account created. You can now log in."];
+        if (!$emailSent) {
+            return ["success" => true, "message" => "Account created, but the verification email could not be sent. Please ask an administrator to check SMTP settings."];
+        }
+
+        return ["success" => true, "message" => "Account created. Check your email to verify your account before logging in."];
     } catch (Throwable $e) {
         error_log("Signup error: " . $e->getMessage());
         return ["success" => false, "message" => "An error occurred while creating your account."];

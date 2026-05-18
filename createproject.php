@@ -280,7 +280,7 @@ if ($websiteId) {
     </div>
     <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       <a href="dashboard.php?page=websites" class="rounded-lg border border-slate-200 px-4 py-2 text-center text-sm font-medium text-slate-700 transition hover:bg-slate-50">Cancel</a>
-      <button type="submit" class="rounded-lg bg-cta px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500">Save Project</button>
+      <button type="submit" class="rounded-lg bg-[#0050D8] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#003FA8]">Save Project</button>
     </div>
   </form>
 

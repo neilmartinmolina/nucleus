@@ -192,9 +192,9 @@ if (!empty($subjectIds)) {
     <p class="text-sm text-slate-500">Organize projects by academic subject</p>
   </div>
   <?php if (hasPermission("manage_groups")): ?>
-  <a href="dashboard.php?page=create-subject" class="bg-cta text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2">
+  <a href="dashboard.php?page=create-subject" class="rounded-lg bg-[#0050D8] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#003FA8] flex items-center gap-2">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-    New Subject
+    Add Subject
   </a>
   <?php endif; ?>
 </div>

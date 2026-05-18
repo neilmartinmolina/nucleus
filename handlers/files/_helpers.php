@@ -10,9 +10,9 @@ function driveRequireUser(): array
         exit("Not authenticated.");
     }
     $role = $_SESSION["role"] ?? (new RoleManager($GLOBALS["pdo"]))->getUserRole($_SESSION["userId"] ?? null);
-    if (!in_array($role, ["admin", "handler"], true)) {
+    if (!canManageFiles()) {
         http_response_code(403);
-        exit("Drive Storage is restricted to administrators and handlers.");
+        exit("Drive Storage is restricted to file managers.");
     }
     return [(int) $_SESSION["userId"], $role ?: "visitor"];
 }

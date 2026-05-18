@@ -118,9 +118,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && ($_POST["project_action"] ?? "") ==
   <div class="flex flex-wrap items-center gap-2">
     <button type="button" data-refresh-statuses class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60">Refresh Status</button>
     <?php if (hasPermission("create_project")): ?>
-    <a href="dashboard.php?page=create-project" class="bg-cta text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors flex items-center gap-2">
+    <a href="dashboard.php?page=create-project" class="rounded-lg bg-[#0050D8] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#003FA8] flex items-center gap-2">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-      New Project
+      Add Project
     </a>
     <?php endif; ?>
   </div>
