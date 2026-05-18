@@ -11,7 +11,7 @@ $roleManager = new RoleManager($pdo);
 $userId = (int) $_SESSION["userId"];
 $role = $roleManager->getUserRole($userId) ?: ($_SESSION["role"] ?? "member");
 $_SESSION["role"] = $role;
-$allowedTabs = ["home", "subjects", "joined", "archived", "websites", "add-project", "settings"];
+$allowedTabs = ["home", "joined", "archived", "websites", "add-project", "settings"];
 $activeTab = in_array($_GET["tab"] ?? "home", $allowedTabs, true) ? ($_GET["tab"] ?? "home") : "home";
 $error = null;
 $success = null;
@@ -269,7 +269,6 @@ function renderSubjectCard(array $subject, bool $archived = false): void {
 function homePageTitle(string $tab): string {
     return [
         "home" => "Home",
-        "subjects" => "Subjects",
         "joined" => "Joined Subjects",
         "archived" => "Archived Subjects",
         "websites" => "Websites",
@@ -331,6 +330,10 @@ function homePageTitle(string $tab): string {
     .home-sidebar {
       transition: transform 180ms ease;
     }
+    .home-sidebar-brand,
+    .home-topbar {
+      min-height: 5.5rem;
+    }
     .home-mobile-backdrop {
       display: none;
     }
@@ -360,7 +363,7 @@ function homePageTitle(string $tab): string {
   <div class="home-mobile-backdrop" data-home-sidebar-close></div>
   <div class="flex min-h-screen">
     <aside id="homeSidebar" class="home-sidebar w-72 shrink-0 border-r border-slate-200 bg-white flex flex-col">
-      <div class="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+      <div class="home-sidebar-brand flex items-center justify-between border-b border-slate-200 px-6 py-5">
         <div>
         <a href="home.php" class="text-xl font-bold tracking-tight text-[#0050D8]">NUCLEUS</a>
         <p class="mt-1 text-sm text-slate-500"><?php echo htmlspecialchars($_SESSION["fullName"] ?? "User"); ?></p>
@@ -374,10 +377,6 @@ function homePageTitle(string $tab): string {
           <?php echo homeIcon("home"); ?>
           <span>Home</span>
         </a>
-        <a href="home.php?tab=subjects" class="<?php echo homeTabClass("subjects", $activeTab); ?>" data-home-tab-link data-tab="subjects" <?php echo $activeTab === "subjects" ? 'aria-current="page"' : ""; ?>>
-          <?php echo homeIcon("subjects"); ?>
-          <span>Subjects</span>
-        </a>
         <a href="home.php?tab=websites" class="<?php echo homeTabClass("websites", $activeTab); ?>" data-home-tab-link data-tab="websites" <?php echo $activeTab === "websites" ? 'aria-current="page"' : ""; ?>>
           <?php echo homeIcon("websites"); ?>
           <span>Websites</span>
@@ -386,7 +385,7 @@ function homePageTitle(string $tab): string {
           <?php echo homeIcon("add-project"); ?>
           <span>Add Project</span>
         </a>
-        <details class="rounded-lg" <?php echo in_array($activeTab, ["joined", "archived"], true) ? "open" : ""; ?>>
+        <details class="rounded-lg" open>
           <summary class="<?php echo in_array($activeTab, ["joined", "archived"], true) ? "home-nav-item is-active cursor-pointer" : "home-nav-item cursor-pointer"; ?>" data-joined-parent>
             <?php echo homeIcon("subjects"); ?>
             <span>Joined</span>
@@ -410,7 +409,7 @@ function homePageTitle(string $tab): string {
     </aside>
 
     <main class="min-w-0 flex-1">
-      <header class="sticky top-0 z-30 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
+      <header class="home-topbar sticky top-0 z-30 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
         <div class="flex items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-3">
             <button type="button" data-home-sidebar-open class="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 md:hidden" aria-label="Open navigation" aria-controls="homeSidebar">
@@ -488,59 +487,6 @@ function homePageTitle(string $tab): string {
               </div>
             <?php endif; ?>
           </section>
-          <?php endif; ?>
-        </section>
-
-        <section class="home-tab-panel" data-home-tab-panel="subjects" <?php echo $activeTab === "subjects" ? "" : "hidden"; ?>>
-          <div class="mb-6">
-            <h1 class="text-3xl font-bold text-slate-900">Subjects</h1>
-            <p class="mt-2 text-sm text-slate-500">Browse your joined subjects and request access to new ones.</p>
-          </div>
-          <div class="mb-8">
-            <div class="mb-4 flex items-center justify-between gap-3">
-              <h2 class="text-xl font-bold text-slate-800">Joined Subjects</h2>
-              <span class="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-[#0050D8]"><?php echo count($activeSubjects); ?></span>
-            </div>
-            <?php if (!$activeSubjects): ?>
-              <div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">You are not part of any active subjects yet.</div>
-            <?php else: ?>
-              <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                <?php foreach ($activeSubjects as $subject): renderSubjectCard($subject); endforeach; ?>
-              </div>
-            <?php endif; ?>
-          </div>
-          <?php if (!$roleManager->isAdmin($userId)): ?>
-          <div>
-            <div class="mb-4 flex items-center justify-between gap-3">
-              <h2 class="text-xl font-bold text-slate-800">Available Subjects</h2>
-              <span class="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600"><?php echo count($availableSubjects); ?></span>
-            </div>
-            <?php if (!$availableSubjects): ?>
-              <div class="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No additional subjects are available.</div>
-            <?php else: ?>
-              <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                <?php foreach ($availableSubjects as $subject): ?>
-                <article class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 class="text-lg font-bold text-slate-900"><?php echo htmlspecialchars($subject["subject_code"]); ?></h3>
-                  <p class="mt-1 text-sm font-medium text-slate-600"><?php echo htmlspecialchars($subject["subject_name"]); ?></p>
-                  <p class="mt-3 min-h-10 text-sm leading-6 text-slate-500"><?php echo htmlspecialchars($subject["description"] ?: "No description"); ?></p>
-                  <div class="mt-4 text-sm text-slate-500"><strong class="text-slate-800"><?php echo (int) $subject["projectCount"]; ?></strong> projects</div>
-                  <?php if (($subject["joinStatus"] ?? "") === "pending"): ?>
-                    <div class="mt-5 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">Request pending</div>
-                  <?php else: ?>
-                    <form method="POST" class="mt-5 space-y-3">
-                      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION["csrf_token"]); ?>">
-                      <input type="hidden" name="subject_action" value="request_join">
-                      <input type="hidden" name="subject_id" value="<?php echo (int) $subject["subject_id"]; ?>">
-                      <input type="text" name="message" placeholder="Optional note to the handler" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#0050D8] focus:ring-2 focus:ring-[#0050D8]/20">
-                      <button type="submit" class="w-full rounded-lg bg-[#0050D8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#003FA8]">Request to Join</button>
-                    </form>
-                  <?php endif; ?>
-                </article>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
-          </div>
           <?php endif; ?>
         </section>
 
@@ -723,6 +669,7 @@ function homePageTitle(string $tab): string {
   (() => {
     const links = Array.from(document.querySelectorAll('[data-home-tab-link]'));
     const panels = Array.from(document.querySelectorAll('[data-home-tab-panel]'));
+    const validTabs = new Set(panels.map(panel => panel.dataset.homeTabPanel));
     const joinedParents = Array.from(document.querySelectorAll('[data-joined-parent]'));
     const titleEl = document.getElementById('homePageTitle');
     const openSidebar = document.querySelector('[data-home-sidebar-open]');
@@ -732,6 +679,7 @@ function homePageTitle(string $tab): string {
       joined: 'Joined Subjects',
       archived: 'Archived Subjects',
       websites: 'Websites',
+      'add-project': 'Add Project',
       settings: 'Account Settings'
     };
 
@@ -745,6 +693,7 @@ function homePageTitle(string $tab): string {
     closeSidebarTriggers.forEach(trigger => trigger.addEventListener('click', closeSidebar));
 
     function setHomeTab(tab, push = true) {
+      if (!validTabs.has(tab)) tab = 'home';
       panels.forEach(panel => {
         panel.hidden = panel.dataset.homeTabPanel !== tab;
       });

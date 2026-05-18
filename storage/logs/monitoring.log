@@ -191,3 +191,15 @@
 [2026-05-18 14:59:16] Monitoring queue selected projects. {"runId":47,"projectIds":[3,2,4]}
 [2026-05-18 14:59:24] Monitoring queue finished. {"runId":47,"checked":3,"skipped":0,"errors":0,"durationMs":8043}
 [2026-05-18 14:59:27] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":11,"invalid":false,"metadata":{"pid":28664,"started_at":"2026-05-18 14:59:16","run_id":47,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 15:03:11] Monitoring queue started. {"runId":48,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 15:03:11] Monitoring queue selected projects. {"runId":48,"projectIds":[3,1,2]}
+[2026-05-18 15:03:17] Monitoring queue finished. {"runId":48,"checked":3,"skipped":0,"errors":0,"durationMs":6036}
+[2026-05-18 15:03:19] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":8,"invalid":false,"metadata":{"pid":30344,"started_at":"2026-05-18 15:03:11","run_id":48,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 22:28:46] Monitoring queue started. {"runId":49,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 22:28:46] Monitoring queue selected projects. {"runId":49,"projectIds":[4,3,1]}
+[2026-05-18 22:28:52] Monitoring queue finished. {"runId":49,"checked":3,"skipped":0,"errors":0,"durationMs":5266}
+[2026-05-18 22:28:53] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":16896,"started_at":"2026-05-18 22:28:46","run_id":49,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 22:34:56] Monitoring queue started. {"runId":50,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 22:34:56] Monitoring queue selected projects. {"runId":50,"projectIds":[2,4,3]}
+[2026-05-18 22:35:00] Monitoring queue finished. {"runId":50,"checked":3,"skipped":0,"errors":0,"durationMs":4327}
+[2026-05-18 22:35:02] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":29336,"started_at":"2026-05-18 22:34:56","run_id":50,"source":"browser_demo","batch":3,"force":true}}

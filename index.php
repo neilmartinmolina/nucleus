@@ -268,13 +268,7 @@ if ($lookupQuery !== "") {
     <footer class="border-t border-slate-200 bg-white px-5 py-6 sm:px-8 lg:px-12">
         <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-sm text-slate-500 md:flex-row">
             <a href="index.php" class="font-bold tracking-tight text-[#0050D8]">NUCLEUS</a>
-            <div class="flex flex-wrap items-center justify-center gap-5">
-                <a href="#platform" class="hover:text-[#0050D8]">Platform</a>
-                <a href="#status-lookup" class="hover:text-[#0050D8]">Status Lookup</a>
-                <a href="#magazine" class="hover:text-[#0050D8]">Stories</a>
-                <a href="#blog" class="hover:text-[#0050D8]">Blog</a>
-                <a href="login.php" class="hover:text-[#0050D8]">Login</a>
-            </div>
+            <p class="max-w-2xl text-center leading-6 md:text-left">Privacy notice: Nucleus uses account and project information only to manage access, requests, status checks, and workflow updates.</p>
             <p>&copy; <?php echo date("Y"); ?> Nucleus. All rights reserved.</p>
         </div>
     </footer>
