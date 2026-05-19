@@ -1,6 +1,7 @@
 const nucleusTailwindConfig = {
   content: [
     "./*.php",
+    "./*.html",
     "./handlers/**/*.php",
     "./includes/**/*.php",
     "./tutorial/**/*.php",

@@ -36,8 +36,7 @@ if ($lookupQuery !== "") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nucleus | Sync Your Workflow</title>
-    <script src="tailwind.config.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/nucleus.css">
     <style>
         :root {
             --nucleus-primary: #0050D8;

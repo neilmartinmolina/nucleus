@@ -203,3 +203,367 @@
 [2026-05-18 22:34:56] Monitoring queue selected projects. {"runId":50,"projectIds":[2,4,3]}
 [2026-05-18 22:35:00] Monitoring queue finished. {"runId":50,"checked":3,"skipped":0,"errors":0,"durationMs":4327}
 [2026-05-18 22:35:02] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":29336,"started_at":"2026-05-18 22:34:56","run_id":50,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 22:51:04] Monitoring queue started. {"runId":51,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 22:51:04] Monitoring queue selected projects. {"runId":51,"projectIds":[1,2,4]}
+[2026-05-18 22:51:09] Monitoring queue finished. {"runId":51,"checked":3,"skipped":0,"errors":0,"durationMs":5227}
+[2026-05-18 22:51:10] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":9852,"started_at":"2026-05-18 22:51:04","run_id":51,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 22:59:44] Monitoring queue started. {"runId":52,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 22:59:44] Monitoring queue selected projects. {"runId":52,"projectIds":[3,1,2]}
+[2026-05-18 22:59:49] Monitoring queue finished. {"runId":52,"checked":3,"skipped":0,"errors":0,"durationMs":4035}
+[2026-05-18 22:59:50] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":15212,"started_at":"2026-05-18 22:59:44","run_id":52,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:01:51] Monitoring queue started. {"runId":53,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:01:51] Monitoring queue selected projects. {"runId":53,"projectIds":[4,3,1]}
+[2026-05-18 23:01:54] Monitoring queue finished. {"runId":53,"checked":3,"skipped":0,"errors":0,"durationMs":3893}
+[2026-05-18 23:01:56] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":25336,"started_at":"2026-05-18 23:01:51","run_id":53,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:07:13] Monitoring queue started. {"runId":54,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:07:13] Monitoring queue selected projects. {"runId":54,"projectIds":[2,4,3]}
+[2026-05-18 23:07:17] Monitoring queue finished. {"runId":54,"checked":3,"skipped":0,"errors":0,"durationMs":4597}
+[2026-05-18 23:07:19] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":27304,"started_at":"2026-05-18 23:07:13","run_id":54,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:09:44] Monitoring queue started. {"runId":55,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:09:44] Monitoring queue selected projects. {"runId":55,"projectIds":[1,2,4]}
+[2026-05-18 23:09:47] Monitoring queue finished. {"runId":55,"checked":3,"skipped":0,"errors":0,"durationMs":3505}
+[2026-05-18 23:09:49] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":4684,"started_at":"2026-05-18 23:09:44","run_id":55,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:11:45] Monitoring queue started. {"runId":56,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:11:45] Monitoring queue selected projects. {"runId":56,"projectIds":[3,1,2]}
+[2026-05-18 23:11:48] Monitoring queue finished. {"runId":56,"checked":3,"skipped":0,"errors":0,"durationMs":3784}
+[2026-05-18 23:11:50] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":7908,"started_at":"2026-05-18 23:11:45","run_id":56,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:13:46] Monitoring queue started. {"runId":57,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:13:46] Monitoring queue selected projects. {"runId":57,"projectIds":[4,3,1]}
+[2026-05-18 23:13:50] Monitoring queue finished. {"runId":57,"checked":3,"skipped":0,"errors":0,"durationMs":4126}
+[2026-05-18 23:13:51] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":24112,"started_at":"2026-05-18 23:13:46","run_id":57,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:15:47] Monitoring queue started. {"runId":58,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:15:47] Monitoring queue selected projects. {"runId":58,"projectIds":[2,4,3]}
+[2026-05-18 23:15:52] Monitoring queue finished. {"runId":58,"checked":3,"skipped":0,"errors":0,"durationMs":4962}
+[2026-05-18 23:15:53] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":30260,"started_at":"2026-05-18 23:15:47","run_id":58,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:17:48] Monitoring queue started. {"runId":59,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:17:48] Monitoring queue selected projects. {"runId":59,"projectIds":[1,2,4]}
+[2026-05-18 23:17:52] Monitoring queue finished. {"runId":59,"checked":3,"skipped":0,"errors":0,"durationMs":3952}
+[2026-05-18 23:17:53] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":13732,"started_at":"2026-05-18 23:17:48","run_id":59,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:19:49] Monitoring queue started. {"runId":60,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:19:49] Monitoring queue selected projects. {"runId":60,"projectIds":[3,1,2]}
+[2026-05-18 23:19:52] Monitoring queue finished. {"runId":60,"checked":3,"skipped":0,"errors":0,"durationMs":3669}
+[2026-05-18 23:19:54] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":19848,"started_at":"2026-05-18 23:19:49","run_id":60,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:26:12] Monitoring queue started. {"runId":61,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:26:12] Monitoring queue selected projects. {"runId":61,"projectIds":[4,3,1]}
+[2026-05-18 23:26:16] Monitoring queue finished. {"runId":61,"checked":3,"skipped":0,"errors":0,"durationMs":3931}
+[2026-05-18 23:26:17] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":26768,"started_at":"2026-05-18 23:26:12","run_id":61,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:28:13] Monitoring queue started. {"runId":62,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:28:13] Monitoring queue selected projects. {"runId":62,"projectIds":[2,4,3]}
+[2026-05-18 23:28:16] Monitoring queue finished. {"runId":62,"checked":3,"skipped":0,"errors":0,"durationMs":3583}
+[2026-05-18 23:28:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":30468,"started_at":"2026-05-18 23:28:13","run_id":62,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:37:13] Monitoring queue started. {"runId":63,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:37:13] Monitoring queue selected projects. {"runId":63,"projectIds":[1,2,4]}
+[2026-05-18 23:37:18] Monitoring queue finished. {"runId":63,"checked":3,"skipped":0,"errors":0,"durationMs":5495}
+[2026-05-18 23:37:20] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":22812,"started_at":"2026-05-18 23:37:13","run_id":63,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:46:13] Monitoring queue started. {"runId":64,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:46:13] Monitoring queue selected projects. {"runId":64,"projectIds":[3,1,2]}
+[2026-05-18 23:46:16] Monitoring queue finished. {"runId":64,"checked":3,"skipped":0,"errors":0,"durationMs":3594}
+[2026-05-18 23:46:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":29896,"started_at":"2026-05-18 23:46:13","run_id":64,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-18 23:55:13] Monitoring queue started. {"runId":65,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-18 23:55:13] Monitoring queue selected projects. {"runId":65,"projectIds":[4,3,1]}
+[2026-05-18 23:55:17] Monitoring queue finished. {"runId":65,"checked":3,"skipped":0,"errors":0,"durationMs":4605}
+[2026-05-18 23:55:19] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":30220,"started_at":"2026-05-18 23:55:13","run_id":65,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 00:04:13] Monitoring queue started. {"runId":66,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 00:04:13] Monitoring queue selected projects. {"runId":66,"projectIds":[2,4,3]}
+[2026-05-19 00:04:17] Monitoring queue finished. {"runId":66,"checked":3,"skipped":0,"errors":0,"durationMs":4058}
+[2026-05-19 00:04:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":17876,"started_at":"2026-05-19 00:04:13","run_id":66,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 00:10:22] Monitoring queue started. {"runId":67,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 00:10:22] Monitoring queue selected projects. {"runId":67,"projectIds":[1,2,4]}
+[2026-05-19 00:10:26] Monitoring queue finished. {"runId":67,"checked":3,"skipped":0,"errors":0,"durationMs":4049}
+[2026-05-19 00:10:27] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":29056,"started_at":"2026-05-19 00:10:22","run_id":67,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 00:18:13] Monitoring queue started. {"runId":68,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 00:18:13] Monitoring queue selected projects. {"runId":68,"projectIds":[3,1,2]}
+[2026-05-19 00:18:16] Monitoring queue finished. {"runId":68,"checked":3,"skipped":0,"errors":0,"durationMs":3847}
+[2026-05-19 00:18:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":31664,"started_at":"2026-05-19 00:18:13","run_id":68,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 00:27:13] Monitoring queue started. {"runId":69,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 00:27:13] Monitoring queue selected projects. {"runId":69,"projectIds":[4,3,1]}
+[2026-05-19 00:27:18] Monitoring queue finished. {"runId":69,"checked":3,"skipped":0,"errors":0,"durationMs":5310}
+[2026-05-19 00:27:20] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":5252,"started_at":"2026-05-19 00:27:13","run_id":69,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 00:36:13] Monitoring queue started. {"runId":70,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 00:36:13] Monitoring queue selected projects. {"runId":70,"projectIds":[2,4,3]}
+[2026-05-19 00:36:16] Monitoring queue finished. {"runId":70,"checked":3,"skipped":0,"errors":0,"durationMs":3656}
+[2026-05-19 00:36:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":8884,"started_at":"2026-05-19 00:36:13","run_id":70,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 00:45:13] Monitoring queue started. {"runId":71,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 00:45:13] Monitoring queue selected projects. {"runId":71,"projectIds":[1,2,4]}
+[2026-05-19 00:45:17] Monitoring queue finished. {"runId":71,"checked":3,"skipped":0,"errors":0,"durationMs":3951}
+[2026-05-19 00:45:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":29328,"started_at":"2026-05-19 00:45:13","run_id":71,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 00:54:13] Monitoring queue started. {"runId":72,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 00:54:13] Monitoring queue selected projects. {"runId":72,"projectIds":[3,1,2]}
+[2026-05-19 00:54:17] Monitoring queue finished. {"runId":72,"checked":3,"skipped":0,"errors":0,"durationMs":3816}
+[2026-05-19 00:54:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":16176,"started_at":"2026-05-19 00:54:13","run_id":72,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 01:03:13] Monitoring queue started. {"runId":73,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 01:03:13] Monitoring queue selected projects. {"runId":73,"projectIds":[4,3,1]}
+[2026-05-19 01:03:17] Monitoring queue finished. {"runId":73,"checked":3,"skipped":0,"errors":0,"durationMs":4161}
+[2026-05-19 01:03:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":30368,"started_at":"2026-05-19 01:03:13","run_id":73,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 01:12:13] Monitoring queue started. {"runId":74,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 01:12:13] Monitoring queue selected projects. {"runId":74,"projectIds":[2,4,3]}
+[2026-05-19 01:12:16] Monitoring queue finished. {"runId":74,"checked":3,"skipped":0,"errors":0,"durationMs":3707}
+[2026-05-19 01:12:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":30740,"started_at":"2026-05-19 01:12:13","run_id":74,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 01:21:13] Monitoring queue started. {"runId":75,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 01:21:13] Monitoring queue selected projects. {"runId":75,"projectIds":[1,2,4]}
+[2026-05-19 01:21:16] Monitoring queue finished. {"runId":75,"checked":3,"skipped":0,"errors":0,"durationMs":3850}
+[2026-05-19 01:21:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":14220,"started_at":"2026-05-19 01:21:13","run_id":75,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 01:30:13] Monitoring queue started. {"runId":76,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 01:30:13] Monitoring queue selected projects. {"runId":76,"projectIds":[3,1,2]}
+[2026-05-19 01:30:20] Monitoring queue finished. {"runId":76,"checked":3,"skipped":0,"errors":0,"durationMs":6848}
+[2026-05-19 01:30:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":8,"invalid":false,"metadata":{"pid":26244,"started_at":"2026-05-19 01:30:13","run_id":76,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 01:39:13] Monitoring queue started. {"runId":77,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 01:39:13] Monitoring queue selected projects. {"runId":77,"projectIds":[4,3,1]}
+[2026-05-19 01:39:17] Monitoring queue finished. {"runId":77,"checked":3,"skipped":0,"errors":0,"durationMs":4273}
+[2026-05-19 01:39:19] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":19048,"started_at":"2026-05-19 01:39:13","run_id":77,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 01:48:13] Monitoring queue started. {"runId":78,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 01:48:13] Monitoring queue selected projects. {"runId":78,"projectIds":[2,4,3]}
+[2026-05-19 01:48:17] Monitoring queue finished. {"runId":78,"checked":3,"skipped":0,"errors":0,"durationMs":3886}
+[2026-05-19 01:48:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":13492,"started_at":"2026-05-19 01:48:13","run_id":78,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 01:57:13] Monitoring queue started. {"runId":79,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 01:57:13] Monitoring queue selected projects. {"runId":79,"projectIds":[1,2,4]}
+[2026-05-19 01:57:17] Monitoring queue finished. {"runId":79,"checked":3,"skipped":0,"errors":0,"durationMs":3980}
+[2026-05-19 01:57:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":18084,"started_at":"2026-05-19 01:57:13","run_id":79,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 02:06:13] Monitoring queue started. {"runId":80,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 02:06:13] Monitoring queue selected projects. {"runId":80,"projectIds":[3,1,2]}
+[2026-05-19 02:06:17] Monitoring queue finished. {"runId":80,"checked":3,"skipped":0,"errors":0,"durationMs":3885}
+[2026-05-19 02:06:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":26896,"started_at":"2026-05-19 02:06:13","run_id":80,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 02:15:13] Monitoring queue started. {"runId":81,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 02:15:13] Monitoring queue selected projects. {"runId":81,"projectIds":[4,3,1]}
+[2026-05-19 02:15:18] Monitoring queue finished. {"runId":81,"checked":3,"skipped":0,"errors":0,"durationMs":4973}
+[2026-05-19 02:15:19] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":32700,"started_at":"2026-05-19 02:15:13","run_id":81,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 02:24:13] Monitoring queue started. {"runId":82,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 02:24:13] Monitoring queue selected projects. {"runId":82,"projectIds":[2,4,3]}
+[2026-05-19 02:24:16] Monitoring queue finished. {"runId":82,"checked":3,"skipped":0,"errors":0,"durationMs":3612}
+[2026-05-19 02:24:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":23548,"started_at":"2026-05-19 02:24:13","run_id":82,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 02:33:13] Monitoring queue started. {"runId":83,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 02:33:13] Monitoring queue selected projects. {"runId":83,"projectIds":[1,2,4]}
+[2026-05-19 02:33:16] Monitoring queue finished. {"runId":83,"checked":3,"skipped":0,"errors":0,"durationMs":3517}
+[2026-05-19 02:33:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":25072,"started_at":"2026-05-19 02:33:13","run_id":83,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 02:42:13] Monitoring queue started. {"runId":84,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 02:42:13] Monitoring queue selected projects. {"runId":84,"projectIds":[3,1,2]}
+[2026-05-19 02:42:16] Monitoring queue finished. {"runId":84,"checked":3,"skipped":0,"errors":0,"durationMs":3720}
+[2026-05-19 02:42:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":31144,"started_at":"2026-05-19 02:42:13","run_id":84,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 02:51:13] Monitoring queue started. {"runId":85,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 02:51:13] Monitoring queue selected projects. {"runId":85,"projectIds":[4,3,1]}
+[2026-05-19 02:51:16] Monitoring queue finished. {"runId":85,"checked":3,"skipped":0,"errors":0,"durationMs":3878}
+[2026-05-19 02:51:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":31696,"started_at":"2026-05-19 02:51:13","run_id":85,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 03:00:13] Monitoring queue started. {"runId":86,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 03:00:13] Monitoring queue selected projects. {"runId":86,"projectIds":[2,4,3]}
+[2026-05-19 03:00:19] Monitoring queue finished. {"runId":86,"checked":3,"skipped":0,"errors":0,"durationMs":6805}
+[2026-05-19 03:00:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":8,"invalid":false,"metadata":{"pid":32712,"started_at":"2026-05-19 03:00:13","run_id":86,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 03:09:13] Monitoring queue started. {"runId":87,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 03:09:13] Monitoring queue selected projects. {"runId":87,"projectIds":[1,2,4]}
+[2026-05-19 03:09:16] Monitoring queue finished. {"runId":87,"checked":3,"skipped":0,"errors":0,"durationMs":3626}
+[2026-05-19 03:09:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":18768,"started_at":"2026-05-19 03:09:13","run_id":87,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 03:18:13] Monitoring queue started. {"runId":88,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 03:18:13] Monitoring queue selected projects. {"runId":88,"projectIds":[3,1,2]}
+[2026-05-19 03:18:16] Monitoring queue finished. {"runId":88,"checked":3,"skipped":0,"errors":0,"durationMs":3498}
+[2026-05-19 03:18:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":30876,"started_at":"2026-05-19 03:18:13","run_id":88,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 03:27:13] Monitoring queue started. {"runId":89,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 03:27:13] Monitoring queue selected projects. {"runId":89,"projectIds":[4,3,1]}
+[2026-05-19 03:27:17] Monitoring queue finished. {"runId":89,"checked":3,"skipped":0,"errors":0,"durationMs":3938}
+[2026-05-19 03:27:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":29600,"started_at":"2026-05-19 03:27:13","run_id":89,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 03:36:13] Monitoring queue started. {"runId":90,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 03:36:13] Monitoring queue selected projects. {"runId":90,"projectIds":[2,4,3]}
+[2026-05-19 03:36:16] Monitoring queue finished. {"runId":90,"checked":3,"skipped":0,"errors":0,"durationMs":3559}
+[2026-05-19 03:36:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":22684,"started_at":"2026-05-19 03:36:13","run_id":90,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 03:45:13] Monitoring queue started. {"runId":91,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 03:45:13] Monitoring queue selected projects. {"runId":91,"projectIds":[1,2,4]}
+[2026-05-19 03:45:16] Monitoring queue finished. {"runId":91,"checked":3,"skipped":0,"errors":0,"durationMs":3733}
+[2026-05-19 03:45:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":14188,"started_at":"2026-05-19 03:45:13","run_id":91,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 03:54:13] Monitoring queue started. {"runId":92,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 03:54:13] Monitoring queue selected projects. {"runId":92,"projectIds":[3,1,2]}
+[2026-05-19 03:54:16] Monitoring queue finished. {"runId":92,"checked":3,"skipped":0,"errors":0,"durationMs":3800}
+[2026-05-19 03:54:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":33564,"started_at":"2026-05-19 03:54:13","run_id":92,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 04:03:13] Monitoring queue started. {"runId":93,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 04:03:13] Monitoring queue selected projects. {"runId":93,"projectIds":[4,3,1]}
+[2026-05-19 04:03:17] Monitoring queue finished. {"runId":93,"checked":3,"skipped":0,"errors":0,"durationMs":3907}
+[2026-05-19 04:03:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":32880,"started_at":"2026-05-19 04:03:13","run_id":93,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 04:12:13] Monitoring queue started. {"runId":94,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 04:12:13] Monitoring queue selected projects. {"runId":94,"projectIds":[2,4,3]}
+[2026-05-19 04:12:16] Monitoring queue finished. {"runId":94,"checked":3,"skipped":0,"errors":0,"durationMs":3650}
+[2026-05-19 04:12:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":15324,"started_at":"2026-05-19 04:12:13","run_id":94,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 04:21:13] Monitoring queue started. {"runId":95,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 04:21:13] Monitoring queue selected projects. {"runId":95,"projectIds":[1,2,4]}
+[2026-05-19 04:21:16] Monitoring queue finished. {"runId":95,"checked":3,"skipped":0,"errors":0,"durationMs":3629}
+[2026-05-19 04:21:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":3204,"started_at":"2026-05-19 04:21:13","run_id":95,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 04:30:13] Monitoring queue started. {"runId":96,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 04:30:13] Monitoring queue selected projects. {"runId":96,"projectIds":[3,1,2]}
+[2026-05-19 04:30:19] Monitoring queue finished. {"runId":96,"checked":3,"skipped":0,"errors":0,"durationMs":6343}
+[2026-05-19 04:30:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":8,"invalid":false,"metadata":{"pid":7648,"started_at":"2026-05-19 04:30:13","run_id":96,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 04:39:13] Monitoring queue started. {"runId":97,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 04:39:13] Monitoring queue selected projects. {"runId":97,"projectIds":[4,3,1]}
+[2026-05-19 04:39:17] Monitoring queue finished. {"runId":97,"checked":3,"skipped":0,"errors":0,"durationMs":3974}
+[2026-05-19 04:39:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":33660,"started_at":"2026-05-19 04:39:13","run_id":97,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 04:48:13] Monitoring queue started. {"runId":98,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 04:48:13] Monitoring queue selected projects. {"runId":98,"projectIds":[2,4,3]}
+[2026-05-19 04:48:16] Monitoring queue finished. {"runId":98,"checked":3,"skipped":0,"errors":0,"durationMs":3770}
+[2026-05-19 04:48:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":17952,"started_at":"2026-05-19 04:48:13","run_id":98,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 04:57:13] Monitoring queue started. {"runId":99,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 04:57:13] Monitoring queue selected projects. {"runId":99,"projectIds":[1,2,4]}
+[2026-05-19 04:57:16] Monitoring queue finished. {"runId":99,"checked":3,"skipped":0,"errors":0,"durationMs":3742}
+[2026-05-19 04:57:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":30996,"started_at":"2026-05-19 04:57:13","run_id":99,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 05:06:13] Monitoring queue started. {"runId":100,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 05:06:13] Monitoring queue selected projects. {"runId":100,"projectIds":[3,1,2]}
+[2026-05-19 05:06:17] Monitoring queue finished. {"runId":100,"checked":3,"skipped":0,"errors":0,"durationMs":3831}
+[2026-05-19 05:06:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":14084,"started_at":"2026-05-19 05:06:13","run_id":100,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 05:15:13] Monitoring queue started. {"runId":101,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 05:15:13] Monitoring queue selected projects. {"runId":101,"projectIds":[4,3,1]}
+[2026-05-19 05:15:16] Monitoring queue finished. {"runId":101,"checked":3,"skipped":0,"errors":0,"durationMs":3780}
+[2026-05-19 05:15:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":33288,"started_at":"2026-05-19 05:15:13","run_id":101,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 05:24:13] Monitoring queue started. {"runId":102,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 05:24:13] Monitoring queue selected projects. {"runId":102,"projectIds":[2,4,3]}
+[2026-05-19 05:24:16] Monitoring queue finished. {"runId":102,"checked":3,"skipped":0,"errors":0,"durationMs":3597}
+[2026-05-19 05:24:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":29008,"started_at":"2026-05-19 05:24:13","run_id":102,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 05:33:13] Monitoring queue started. {"runId":103,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 05:33:13] Monitoring queue selected projects. {"runId":103,"projectIds":[1,2,4]}
+[2026-05-19 05:33:16] Monitoring queue finished. {"runId":103,"checked":3,"skipped":0,"errors":0,"durationMs":3658}
+[2026-05-19 05:33:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":21832,"started_at":"2026-05-19 05:33:13","run_id":103,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 05:42:13] Monitoring queue started. {"runId":104,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 05:42:13] Monitoring queue selected projects. {"runId":104,"projectIds":[3,1,2]}
+[2026-05-19 05:42:17] Monitoring queue finished. {"runId":104,"checked":3,"skipped":0,"errors":0,"durationMs":3849}
+[2026-05-19 05:42:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":12564,"started_at":"2026-05-19 05:42:13","run_id":104,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 05:51:13] Monitoring queue started. {"runId":105,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 05:51:13] Monitoring queue selected projects. {"runId":105,"projectIds":[4,3,1]}
+[2026-05-19 05:51:16] Monitoring queue finished. {"runId":105,"checked":3,"skipped":0,"errors":0,"durationMs":3833}
+[2026-05-19 05:51:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":2632,"started_at":"2026-05-19 05:51:13","run_id":105,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 06:00:13] Monitoring queue started. {"runId":106,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 06:00:13] Monitoring queue selected projects. {"runId":106,"projectIds":[2,4,3]}
+[2026-05-19 06:00:19] Monitoring queue finished. {"runId":106,"checked":3,"skipped":0,"errors":0,"durationMs":6688}
+[2026-05-19 06:00:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":8,"invalid":false,"metadata":{"pid":33176,"started_at":"2026-05-19 06:00:13","run_id":106,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 06:09:13] Monitoring queue started. {"runId":107,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 06:09:13] Monitoring queue selected projects. {"runId":107,"projectIds":[1,2,4]}
+[2026-05-19 06:09:16] Monitoring queue finished. {"runId":107,"checked":3,"skipped":0,"errors":0,"durationMs":3594}
+[2026-05-19 06:09:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":29100,"started_at":"2026-05-19 06:09:13","run_id":107,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 06:18:13] Monitoring queue started. {"runId":108,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 06:18:13] Monitoring queue selected projects. {"runId":108,"projectIds":[3,1,2]}
+[2026-05-19 06:18:16] Monitoring queue finished. {"runId":108,"checked":3,"skipped":0,"errors":0,"durationMs":3642}
+[2026-05-19 06:18:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":25936,"started_at":"2026-05-19 06:18:13","run_id":108,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 06:27:13] Monitoring queue started. {"runId":109,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 06:27:13] Monitoring queue selected projects. {"runId":109,"projectIds":[4,3,1]}
+[2026-05-19 06:27:16] Monitoring queue finished. {"runId":109,"checked":3,"skipped":0,"errors":0,"durationMs":3852}
+[2026-05-19 06:27:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":7408,"started_at":"2026-05-19 06:27:13","run_id":109,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 06:36:13] Monitoring queue started. {"runId":110,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 06:36:13] Monitoring queue selected projects. {"runId":110,"projectIds":[2,4,3]}
+[2026-05-19 06:36:16] Monitoring queue finished. {"runId":110,"checked":3,"skipped":0,"errors":0,"durationMs":3716}
+[2026-05-19 06:36:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":32460,"started_at":"2026-05-19 06:36:13","run_id":110,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 06:45:13] Monitoring queue started. {"runId":111,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 06:45:13] Monitoring queue selected projects. {"runId":111,"projectIds":[1,2,4]}
+[2026-05-19 06:45:16] Monitoring queue finished. {"runId":111,"checked":3,"skipped":0,"errors":0,"durationMs":3510}
+[2026-05-19 06:45:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":24200,"started_at":"2026-05-19 06:45:13","run_id":111,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 06:54:13] Monitoring queue started. {"runId":112,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 06:54:13] Monitoring queue selected projects. {"runId":112,"projectIds":[3,1,2]}
+[2026-05-19 06:54:17] Monitoring queue finished. {"runId":112,"checked":3,"skipped":0,"errors":0,"durationMs":4598}
+[2026-05-19 06:54:19] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":29684,"started_at":"2026-05-19 06:54:13","run_id":112,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 07:03:13] Monitoring queue started. {"runId":113,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 07:03:13] Monitoring queue selected projects. {"runId":113,"projectIds":[4,3,1]}
+[2026-05-19 07:03:17] Monitoring queue finished. {"runId":113,"checked":3,"skipped":0,"errors":0,"durationMs":4242}
+[2026-05-19 07:03:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":29916,"started_at":"2026-05-19 07:03:13","run_id":113,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 07:12:13] Monitoring queue started. {"runId":114,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 07:12:13] Monitoring queue selected projects. {"runId":114,"projectIds":[2,4,3]}
+[2026-05-19 07:12:16] Monitoring queue finished. {"runId":114,"checked":3,"skipped":0,"errors":0,"durationMs":3597}
+[2026-05-19 07:12:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":23860,"started_at":"2026-05-19 07:12:13","run_id":114,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 07:21:13] Monitoring queue started. {"runId":115,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 07:21:13] Monitoring queue selected projects. {"runId":115,"projectIds":[1,2,4]}
+[2026-05-19 07:21:17] Monitoring queue finished. {"runId":115,"checked":3,"skipped":0,"errors":0,"durationMs":3954}
+[2026-05-19 07:21:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":24944,"started_at":"2026-05-19 07:21:13","run_id":115,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 07:30:13] Monitoring queue started. {"runId":116,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 07:30:13] Monitoring queue selected projects. {"runId":116,"projectIds":[3,1,2]}
+[2026-05-19 07:30:20] Monitoring queue finished. {"runId":116,"checked":3,"skipped":0,"errors":0,"durationMs":7093}
+[2026-05-19 07:30:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":8,"invalid":false,"metadata":{"pid":32380,"started_at":"2026-05-19 07:30:13","run_id":116,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 07:39:13] Monitoring queue started. {"runId":117,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 07:39:13] Monitoring queue selected projects. {"runId":117,"projectIds":[4,3,1]}
+[2026-05-19 07:39:16] Monitoring queue finished. {"runId":117,"checked":3,"skipped":0,"errors":0,"durationMs":3877}
+[2026-05-19 07:39:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":10620,"started_at":"2026-05-19 07:39:13","run_id":117,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 07:48:13] Monitoring queue started. {"runId":118,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 07:48:13] Monitoring queue selected projects. {"runId":118,"projectIds":[2,4,3]}
+[2026-05-19 07:48:17] Monitoring queue finished. {"runId":118,"checked":3,"skipped":0,"errors":0,"durationMs":3910}
+[2026-05-19 07:48:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":32092,"started_at":"2026-05-19 07:48:13","run_id":118,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 07:57:13] Monitoring queue started. {"runId":119,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 07:57:13] Monitoring queue selected projects. {"runId":119,"projectIds":[1,2,4]}
+[2026-05-19 07:57:17] Monitoring queue finished. {"runId":119,"checked":3,"skipped":0,"errors":0,"durationMs":4063}
+[2026-05-19 07:57:18] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":32260,"started_at":"2026-05-19 07:57:13","run_id":119,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 08:06:13] Monitoring queue started. {"runId":120,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 08:06:13] Monitoring queue selected projects. {"runId":120,"projectIds":[3,1,2]}
+[2026-05-19 08:06:17] Monitoring queue finished. {"runId":120,"checked":3,"skipped":0,"errors":0,"durationMs":4695}
+[2026-05-19 08:06:19] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":31436,"started_at":"2026-05-19 08:06:13","run_id":120,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 08:15:15] Monitoring queue started. {"runId":121,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 08:15:15] Monitoring queue selected projects. {"runId":121,"projectIds":[4,3,1]}
+[2026-05-19 08:15:20] Monitoring queue finished. {"runId":121,"checked":3,"skipped":0,"errors":0,"durationMs":4242}
+[2026-05-19 08:15:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":31992,"started_at":"2026-05-19 08:15:15","run_id":121,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 08:24:15] Monitoring queue started. {"runId":122,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 08:24:16] Monitoring queue selected projects. {"runId":122,"projectIds":[2,4,3]}
+[2026-05-19 08:24:20] Monitoring queue finished. {"runId":122,"checked":3,"skipped":0,"errors":0,"durationMs":4646}
+[2026-05-19 08:24:22] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":33264,"started_at":"2026-05-19 08:24:15","run_id":122,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 08:33:15] Monitoring queue started. {"runId":123,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 08:33:15] Monitoring queue selected projects. {"runId":123,"projectIds":[1,2,4]}
+[2026-05-19 08:33:20] Monitoring queue finished. {"runId":123,"checked":3,"skipped":0,"errors":0,"durationMs":4537}
+[2026-05-19 08:33:22] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":31852,"started_at":"2026-05-19 08:33:15","run_id":123,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 08:42:16] Monitoring queue started. {"runId":124,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 08:42:16] Monitoring queue selected projects. {"runId":124,"projectIds":[3,1,2]}
+[2026-05-19 08:42:20] Monitoring queue finished. {"runId":124,"checked":3,"skipped":0,"errors":0,"durationMs":4415}
+[2026-05-19 08:42:22] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":29792,"started_at":"2026-05-19 08:42:16","run_id":124,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 08:51:16] Monitoring queue started. {"runId":125,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 08:51:16] Monitoring queue selected projects. {"runId":125,"projectIds":[4,3,1]}
+[2026-05-19 08:51:20] Monitoring queue finished. {"runId":125,"checked":3,"skipped":0,"errors":0,"durationMs":4328}
+[2026-05-19 08:51:22] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":33544,"started_at":"2026-05-19 08:51:16","run_id":125,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 09:00:16] Monitoring queue started. {"runId":126,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 09:00:16] Monitoring queue selected projects. {"runId":126,"projectIds":[2,4,3]}
+[2026-05-19 09:00:30] Monitoring queue finished. {"runId":126,"checked":3,"skipped":0,"errors":0,"durationMs":14603}
+[2026-05-19 09:00:32] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":16,"invalid":false,"metadata":{"pid":31364,"started_at":"2026-05-19 09:00:16","run_id":126,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 09:09:15] Monitoring queue started. {"runId":127,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 09:09:15] Monitoring queue selected projects. {"runId":127,"projectIds":[1,2,4]}
+[2026-05-19 09:09:21] Monitoring queue finished. {"runId":127,"checked":3,"skipped":0,"errors":0,"durationMs":5069}
+[2026-05-19 09:09:22] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":27356,"started_at":"2026-05-19 09:09:15","run_id":127,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 09:18:15] Monitoring queue started. {"runId":128,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 09:18:15] Monitoring queue selected projects. {"runId":128,"projectIds":[3,1,2]}
+[2026-05-19 09:18:20] Monitoring queue finished. {"runId":128,"checked":3,"skipped":0,"errors":0,"durationMs":4188}
+[2026-05-19 09:18:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":29040,"started_at":"2026-05-19 09:18:15","run_id":128,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 09:27:15] Monitoring queue started. {"runId":129,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 09:27:15] Monitoring queue selected projects. {"runId":129,"projectIds":[4,3,1]}
+[2026-05-19 09:27:21] Monitoring queue finished. {"runId":129,"checked":3,"skipped":0,"errors":0,"durationMs":5641}
+[2026-05-19 09:27:23] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":8,"invalid":false,"metadata":{"pid":11572,"started_at":"2026-05-19 09:27:15","run_id":129,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 09:36:16] Monitoring queue started. {"runId":130,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 09:36:16] Monitoring queue selected projects. {"runId":130,"projectIds":[2,4,3]}
+[2026-05-19 09:36:20] Monitoring queue finished. {"runId":130,"checked":3,"skipped":0,"errors":0,"durationMs":4495}
+[2026-05-19 09:36:22] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":29796,"started_at":"2026-05-19 09:36:16","run_id":130,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 09:45:15] Monitoring queue started. {"runId":131,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 09:45:15] Monitoring queue selected projects. {"runId":131,"projectIds":[1,2,4]}
+[2026-05-19 09:45:19] Monitoring queue finished. {"runId":131,"checked":3,"skipped":0,"errors":0,"durationMs":3514}
+[2026-05-19 09:45:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":32296,"started_at":"2026-05-19 09:45:15","run_id":131,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 09:54:15] Monitoring queue started. {"runId":132,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 09:54:15] Monitoring queue selected projects. {"runId":132,"projectIds":[3,1,2]}
+[2026-05-19 09:54:21] Monitoring queue finished. {"runId":132,"checked":3,"skipped":0,"errors":0,"durationMs":5083}
+[2026-05-19 09:54:22] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":24956,"started_at":"2026-05-19 09:54:15","run_id":132,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 10:03:16] Monitoring queue started. {"runId":133,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 10:03:16] Monitoring queue selected projects. {"runId":133,"projectIds":[4,3,1]}
+[2026-05-19 10:03:20] Monitoring queue finished. {"runId":133,"checked":3,"skipped":0,"errors":0,"durationMs":4016}
+[2026-05-19 10:03:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":27460,"started_at":"2026-05-19 10:03:16","run_id":133,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 10:12:15] Monitoring queue started. {"runId":134,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 10:12:15] Monitoring queue selected projects. {"runId":134,"projectIds":[2,4,3]}
+[2026-05-19 10:12:21] Monitoring queue finished. {"runId":134,"checked":3,"skipped":0,"errors":0,"durationMs":5248}
+[2026-05-19 10:12:22] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":30412,"started_at":"2026-05-19 10:12:15","run_id":134,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 10:21:15] Monitoring queue started. {"runId":135,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 10:21:15] Monitoring queue selected projects. {"runId":135,"projectIds":[1,2,4]}
+[2026-05-19 10:21:20] Monitoring queue finished. {"runId":135,"checked":3,"skipped":0,"errors":0,"durationMs":4948}
+[2026-05-19 10:21:22] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":33648,"started_at":"2026-05-19 10:21:15","run_id":135,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 10:30:16] Monitoring queue started. {"runId":136,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 10:30:16] Monitoring queue selected projects. {"runId":136,"projectIds":[3,1,2]}
+[2026-05-19 10:30:22] Monitoring queue finished. {"runId":136,"checked":3,"skipped":0,"errors":0,"durationMs":6650}
+[2026-05-19 10:30:24] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":8,"invalid":false,"metadata":{"pid":32780,"started_at":"2026-05-19 10:30:16","run_id":136,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 10:39:16] Monitoring queue started. {"runId":137,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 10:39:16] Monitoring queue selected projects. {"runId":137,"projectIds":[4,3,1]}
+[2026-05-19 10:39:23] Monitoring queue finished. {"runId":137,"checked":3,"skipped":0,"errors":0,"durationMs":7317}
+[2026-05-19 10:39:25] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":9,"invalid":false,"metadata":{"pid":31500,"started_at":"2026-05-19 10:39:16","run_id":137,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 10:48:15] Monitoring queue started. {"runId":138,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 10:48:15] Monitoring queue selected projects. {"runId":138,"projectIds":[2,4,3]}
+[2026-05-19 10:48:19] Monitoring queue finished. {"runId":138,"checked":3,"skipped":0,"errors":0,"durationMs":3841}
+[2026-05-19 10:48:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":6,"invalid":false,"metadata":{"pid":31584,"started_at":"2026-05-19 10:48:15","run_id":138,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 10:57:15] Monitoring queue started. {"runId":139,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 10:57:15] Monitoring queue selected projects. {"runId":139,"projectIds":[1,2,4]}
+[2026-05-19 10:57:28] Monitoring queue finished. {"runId":139,"checked":3,"skipped":0,"errors":0,"durationMs":12228}
+[2026-05-19 10:57:29] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":14,"invalid":false,"metadata":{"pid":33664,"started_at":"2026-05-19 10:57:15","run_id":139,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 11:06:16] Monitoring queue started. {"runId":140,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 11:06:16] Monitoring queue selected projects. {"runId":140,"projectIds":[3,1,2]}
+[2026-05-19 11:06:19] Monitoring queue finished. {"runId":140,"checked":3,"skipped":0,"errors":0,"durationMs":3776}
+[2026-05-19 11:06:21] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":5,"invalid":false,"metadata":{"pid":25372,"started_at":"2026-05-19 11:06:16","run_id":140,"source":"browser_demo","batch":3,"force":true}}
+[2026-05-19 11:15:16] Monitoring queue started. {"runId":141,"batchSize":3,"force":true,"source":"browser_demo"}
+[2026-05-19 11:15:16] Monitoring queue selected projects. {"runId":141,"projectIds":[4,3,1]}
+[2026-05-19 11:15:22] Monitoring queue finished. {"runId":141,"checked":3,"skipped":0,"errors":0,"durationMs":6024}
+[2026-05-19 11:15:23] Stale monitoring lock cleared. {"source":"scheduler_status","ageSeconds":7,"invalid":false,"metadata":{"pid":32020,"started_at":"2026-05-19 11:15:16","run_id":141,"source":"browser_demo","batch":3,"force":true}}

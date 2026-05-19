@@ -67,12 +67,12 @@ function sendNucleusEmail(string $toEmail, string $toName, string $subject, stri
 }
 
 function nucleusMailAppUrl(string $path = ""): string {
-    $baseUrl = rtrim((string) (defined("APP_URL") ? APP_URL : ($_ENV["APP_URL"] ?? "")), "/");
+    $baseUrl = rtrim((string) (defined("SITE_URL") ? SITE_URL : (defined("APP_URL") ? APP_URL : ($_ENV["APP_URL"] ?? ""))), "/");
     if ($baseUrl === "") {
         $baseUrl = "http://localhost/Nucleus";
     }
 
-    $basePath = trim(str_replace("\\", "/", dirname($_SERVER["SCRIPT_NAME"] ?? "")), "/");
+    $basePath = defined("SITE_URL") ? "" : trim(str_replace("\\", "/", dirname($_SERVER["SCRIPT_NAME"] ?? "")), "/");
     if ($basePath !== "" && $basePath !== "." && !preg_match('#/' . preg_quote($basePath, "#") . '$#i', $baseUrl)) {
         $baseUrl .= "/" . $basePath;
     }

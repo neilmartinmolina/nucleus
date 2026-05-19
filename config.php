@@ -50,9 +50,11 @@ if (!function_exists("isLocal")) {
 }
 
 // Application settings
+$site_url = isLocal() ? "http://localhost/Nucleus" : "https://nucleus.argy.host";
 defined("APP_ENV") || define("APP_ENV", $nucleusConfig["app"]["env"]);
 defined("APP_DEBUG") || define("APP_DEBUG", (bool) $nucleusConfig["app"]["debug"]);
 defined("APP_URL") || define("APP_URL", $nucleusConfig["app"]["url"]);
+defined("SITE_URL") || define("SITE_URL", $site_url);
 defined("SESSION_LIFETIME") || define("SESSION_LIFETIME", 1800); // 30 minutes inactivity timeout
 defined("DB_CONNECTION") || define("DB_CONNECTION", $nucleusConfig["database"]["connection"]);
 defined("DB_HOST") || define("DB_HOST", $nucleusConfig["database"]["host"]);

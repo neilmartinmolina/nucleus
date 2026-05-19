@@ -76,8 +76,7 @@ $isSuccess = $status === "success";
     <?php if ($isSuccess): ?>
     <meta http-equiv="refresh" content="3;url=<?= htmlspecialchars($redirectUrl, ENT_QUOTES, "UTF-8") ?>">
     <?php endif; ?>
-    <script src="tailwind.config.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/css/nucleus.css">
     <?php if ($isSuccess): ?>
     <script>
         window.setTimeout(function () {

@@ -82,9 +82,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $website["status"] = $statusMap[$_POST["status"] ?? "initializing"] ?? ($_POST["status"] ?? "initializing");
     $website["folder_id"] = $_POST["folderId"] ?? null;
 
-    if ($website["websiteName"] === "" || $website["url"] === "" || $website["repo_url"] === "") {
-        $error = "Website name, URL, and GitHub repo URL are required.";
-    } elseif (!validateGitRepoUrl($website["repo_url"]) || $website["repo_name"] === "") {
+    if ($website["websiteName"] === "" || $website["url"] === "") {
+        $error = "Website name and URL are required.";
+    } elseif ($website["repo_url"] !== "" && (!validateGitRepoUrl($website["repo_url"]) || $website["repo_name"] === "")) {
         $error = "GitHub repo URL must end with .git.";
     } elseif (!in_array($website["deployment_mode"], ["hostinger_git", "custom_webhook"], true)) {
         $error = "Invalid deployment mode selected.";
@@ -233,8 +233,8 @@ if ($websiteId) {
         <input type="url" name="url" required value="<?php echo htmlspecialchars($website["url"]); ?>" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20">
       </div>
       <div class="md:col-span-2">
-        <label class="mb-1 block text-sm font-medium text-slate-700">GitHub Repo URL (.git) *</label>
-        <input type="url" name="repo_url" id="repoUrl" required pattern="https?://.+\.git$" value="<?php echo htmlspecialchars($website["repo_url"]); ?>" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20" placeholder="https://github.com/owner/repo.git">
+        <label class="mb-1 block text-sm font-medium text-slate-700">GitHub Repo URL (.git)</label>
+        <input type="url" name="repo_url" id="repoUrl" pattern="https?://.+\.git$" value="<?php echo htmlspecialchars($website["repo_url"]); ?>" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cta focus:ring-2 focus:ring-cta/20" placeholder="https://github.com/owner/repo.git">
       </div>
       <div class="md:col-span-2">
         <label class="mb-1 block text-sm font-medium text-slate-700">Deploy Path</label>

@@ -26,12 +26,7 @@ if (empty($version)) {
     exit;
 }
 
-if (empty($repoUrl)) {
-    echo SweetAlert::error("Validation Error", "GitHub repo URL is required");
-    exit;
-}
-
-if (!validateGitRepoUrl($repoUrl) || empty($repoName)) {
+if ($repoUrl !== "" && (!validateGitRepoUrl($repoUrl) || empty($repoName))) {
     echo SweetAlert::error("Validation Error", "GitHub repo URL must end with .git");
     exit;
 }

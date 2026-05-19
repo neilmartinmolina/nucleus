@@ -45,6 +45,17 @@ function monitoringNowPhpBinary(): string
     return PHP_BINARY;
 }
 
+function monitoringNowCanExecuteShell(): bool
+{
+    if (!function_exists("exec") || !function_exists("escapeshellarg")) {
+        return false;
+    }
+
+    $disabled = array_map("trim", explode(",", (string) ini_get("disable_functions")));
+    $disabled = array_filter(array_map("strtolower", $disabled));
+    return !in_array("exec", $disabled, true) && !in_array("escapeshellarg", $disabled, true);
+}
+
 function monitoringNowDecodeQueueOutput(string $rawOutput): ?array
 {
     $decoded = json_decode($rawOutput, true);
@@ -97,6 +108,22 @@ $force = !empty($settings["scheduler_force"]);
 $source = preg_replace('/[^a-z0-9_]/i', "", (string) ($_POST["source"] ?? "manual"));
 $source = in_array($source, ["manual", "browser_demo"], true) ? $source : "manual";
 $scriptPath = __DIR__ . "/run_monitoring_queue.php";
+
+if (!monitoringNowCanExecuteShell()) {
+    monitoringNowResponse(503, [
+        "success" => false,
+        "message" => "Monitoring queue cannot run from the browser on this host because PHP shell execution is disabled. Use external cron mode or run the queue from the server scheduler.",
+        "checked_count" => 0,
+        "error_count" => 0,
+        "duration_ms" => max(0, (int) round(microtime(true) * 1000) - $startedAtMs),
+        "latest_run_id" => null,
+        "skipped" => true,
+        "reason" => "shell_execution_disabled",
+        "last_run_at" => null,
+        "display_last_run_at" => "Never",
+    ]);
+}
+
 $phpBinary = monitoringNowPhpBinary();
 $command = escapeshellarg($phpBinary) . " " . escapeshellarg($scriptPath) . " batch=" . $batchSize . " " . escapeshellarg("source=" . $source);
 if ($force) {
@@ -106,7 +133,24 @@ $command .= " 2>&1";
 
 $output = [];
 $exitCode = 0;
-@exec($command, $output, $exitCode);
+try {
+    @exec($command, $output, $exitCode);
+} catch (Throwable $e) {
+    monitoringLog("Manual monitoring queue could not start.", [
+        "error" => $e->getMessage(),
+        "durationMs" => max(0, (int) round(microtime(true) * 1000) - $startedAtMs),
+    ]);
+    monitoringNowResponse(500, [
+        "success" => false,
+        "message" => "Monitoring queue could not start on this host. Use external cron mode or check the server PHP configuration.",
+        "checked_count" => 0,
+        "error_count" => 1,
+        "duration_ms" => max(0, (int) round(microtime(true) * 1000) - $startedAtMs),
+        "latest_run_id" => null,
+        "skipped" => true,
+        "reason" => "queue_start_failed",
+    ]);
+}
 $durationMs = max(0, (int) round(microtime(true) * 1000) - $startedAtMs);
 
 $rawOutput = trim(implode("\n", $output));

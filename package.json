@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i ./assets/css/nucleus.input.css -o ./assets/css/nucleus.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

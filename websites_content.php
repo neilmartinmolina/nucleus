@@ -21,9 +21,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["csrf_token"]) && empty
     $version = trim($_POST["version"] ?? "1.0.0");
     $folderId = $_POST["folderId"] ?? null;
     
-    if (empty($websiteName) || empty($url) || empty($repoUrl)) {
-        $error = "Website name, URL, and GitHub repo URL are required";
-    } elseif (!validateGitRepoUrl($repoUrl) || empty($repoName)) {
+    if (empty($websiteName) || empty($url)) {
+        $error = "Website name and URL are required";
+    } elseif ($repoUrl !== "" && (!validateGitRepoUrl($repoUrl) || empty($repoName))) {
         $error = "GitHub repo URL must end with .git";
     } elseif (!Security::validateVersion($version)) {
         $error = "Invalid version format. Use format like 1.0.0 or v1.0.0";

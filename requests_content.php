@@ -14,7 +14,7 @@ function ensureProjectRequestsTable(PDO $pdo): void {
             subject_id INT NOT NULL,
             project_name VARCHAR(255) NOT NULL,
             public_url VARCHAR(2048) NOT NULL,
-            github_repo_url VARCHAR(2048) NOT NULL,
+            github_repo_url VARCHAR(2048) NULL,
             github_repo_name VARCHAR(255) NULL,
             requested_version VARCHAR(50) NOT NULL DEFAULT '1.0.0',
             message TEXT NULL,
@@ -102,13 +102,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if (!$subjectId) {
                 throw new Exception("Please choose a subject folder.");
             }
-            if ($projectName === "" || $publicUrl === "" || $repoUrl === "") {
-                throw new Exception("Website name, URL, and GitHub repo URL are required.");
+            if ($projectName === "" || $publicUrl === "") {
+                throw new Exception("Website name and URL are required.");
             }
             if (!filter_var($publicUrl, FILTER_VALIDATE_URL)) {
                 throw new Exception("Please enter a valid website URL.");
             }
-            if (!validateGitRepoUrl($repoUrl) || $repoName === "") {
+            if ($repoUrl !== "" && (!validateGitRepoUrl($repoUrl) || $repoName === "")) {
                 throw new Exception("GitHub repo URL must end with .git.");
             }
             if (!Security::validateVersion($version)) {
@@ -125,10 +125,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt = $pdo->prepare("
                 SELECT request_id
                 FROM project_requests
-                WHERE requested_by = ? AND subject_id = ? AND github_repo_url = ? AND status = 'pending'
+                WHERE requested_by = ? AND subject_id = ? AND project_name = ? AND public_url = ? AND status = 'pending'
                 LIMIT 1
             ");
-            $stmt->execute([$_SESSION["userId"], $subjectId, $repoUrl]);
+            $stmt->execute([$_SESSION["userId"], $subjectId, $projectName, $publicUrl]);
             if ($stmt->fetch()) {
                 throw new Exception("You already have a pending request for this website in that subject.");
             }
@@ -501,8 +501,8 @@ $subjects = in_array($_SESSION["role"] ?? "", ["superadmin", "admin"], true)
       <input type="url" name="public_url" required placeholder="https://example.com" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-cta focus:ring-2 focus:ring-cta/20">
     </div>
     <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">GitHub Repo URL (.git) *</label>
-      <input type="url" name="github_repo_url" required pattern="https?://.+\.git$" placeholder="https://github.com/owner/repo.git" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-cta focus:ring-2 focus:ring-cta/20">
+      <label class="mb-1 block text-sm font-medium text-slate-700">GitHub Repo URL (.git)</label>
+      <input type="url" name="github_repo_url" pattern="https?://.+\.git$" placeholder="https://github.com/owner/repo.git" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-cta focus:ring-2 focus:ring-cta/20">
     </div>
     <div class="md:col-span-2">
       <label class="mb-1 block text-sm font-medium text-slate-700">Message to Handlers</label>
